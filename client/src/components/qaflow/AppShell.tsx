@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { Bell, ChevronDown, Command, FlaskConical, LayoutDashboard, FileText, Boxes, PlayCircle, BarChart3, Bug, Server, Plug, Menu, X, ArrowUpRight } from "lucide-react";
+import { Bell, ChevronDown, Command, FlaskConical, LayoutDashboard, FileText, Boxes, PlayCircle, BarChart3, Bug, Server, Plug, Menu, X, ArrowUpRight, Database, Workflow } from "lucide-react";
 import { toast } from "sonner";
 
 type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; badge?: string; tone?: string };
@@ -15,6 +15,10 @@ const quality: NavItem[] = [
   { href: "/bugs", label: "Bug Inbox", icon: Bug, badge: "7", tone: "coral" },
   { href: "/environments", label: "Environments", icon: Server },
   { href: "/integrations", label: "Integrations", icon: Plug },
+];
+const labs: NavItem[] = [
+  { href: "/api-lab", label: "API Lab", icon: Workflow },
+  { href: "/db-lab", label: "DB Lab", icon: Database },
 ];
 
 function BrandMark() {
@@ -37,6 +41,7 @@ export function AppShell({ children, title, eyebrow, action }: { children: React
       </button>
       <div className="nav-section"><span className="nav-label">WORKSPACE</span>{nav(primary)}</div>
       <div className="nav-section"><span className="nav-label">QUALITY</span>{nav(quality)}</div>
+      <div className="nav-section"><span className="nav-label">EXECUTION LABS</span>{nav(labs)}</div>
       <div className="sidebar-bottom"><div className="health-card"><span className="pulse-dot" /><div><strong>All systems healthy</strong><small>Last check 2 min ago</small></div><ArrowUpRight size={14} /></div><div className="user-card"><span className="avatar">AR</span><div><strong>Aisha Rahman</strong><small>QA Lead</small></div><ChevronDown size={14} /></div></div>
     </aside>
     {mobileOpen && <button className="sidebar-scrim" aria-label="Tutup menu" onClick={() => setMobileOpen(false)} />}

@@ -15,6 +15,8 @@ Website ini dibangun berdasarkan spesifikasi `web-qa.md` dan saat ini berfokus p
 - Overview quality control room dengan pass rate, requirement coverage, open bugs, flaky tests, dan trend chart.
 - Requirements workspace dengan pencarian, filter coverage, prioritas, sumber PRD, dan traceability drawer.
 - Test Cases workspace dengan status draft/review/approved, tipe UI/API/DB/Manual, automation flag, dan AI reasoning.
+- API Lab untuk request builder manual, authorization, headers/body, assertions, variables, response viewer, dan saved requests.
+- DB Lab untuk SQL console read-only, schema browser, assertions, result table, saved queries, dan production protection.
 - Test Runs dengan environment, hasil pass/fail, trigger source, detail run, rerun failed, serta create bug.
 - Reports dengan aggregate quality trend dan export affordance.
 - Bug Inbox dengan fingerprint deduplication, severity, status tracker, dan occurrence count.
@@ -93,6 +95,6 @@ TODO.md                               # Implementation outcomes
 
 ## Status implementasi
 
-Versi saat ini adalah **frontend product slice/demo**. Interaksi utama memakai mock state dan toast untuk menunjukkan perilaku produk. Integrasi produksi untuk LLM, worker Playwright, Jira/ClickUp, storage artefak, RBAC, dan persistence database belum diaktifkan sebagai koneksi nyata.
+Versi saat ini adalah **frontend product slice/demo**. Interaksi utama memakai mock state dan toast untuk menunjukkan perilaku produk. API Lab dan DB Lab sudah menyediakan pengalaman manual testing di dalam website, tetapi request API dan query database masih disimulasikan; executor produksi, LLM, worker Playwright, Jira/ClickUp, storage artefak, RBAC, dan persistence database belum diaktifkan sebagai koneksi nyata.
 
 Checkpoint QAflow terakhir: `96fdb3b`.

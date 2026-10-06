@@ -162,6 +162,13 @@ Versi demo tidak membutuhkan environment variable untuk ditampilkan. Jika nanti 
 - Detail drawer dengan alur `Requirement → Test Case → Fingerprint → Bug`.
 - Rerun failed dan create bug affordances.
 
+### API Lab dan DB Lab
+
+- API Lab menyediakan request builder manual dengan method GET/POST/PATCH/DELETE, URL, environment, authorization, headers, body JSON, saved requests, variables, assertions status/latency/JSON path, response viewer, dan history affordance.
+- DB Lab menyediakan SQL editor, pilihan PostgreSQL/MySQL/MongoDB, saved queries, schema browser, assertions row/column, result table, query validation, dan guardrail read-only.
+- Production environment ditandai protected; UI menjelaskan bahwa write query dan destructive statement harus diblokir.
+- Saat ini kedua lab adalah **UI product slice**: response API dan result DB memakai mock state. Executor backend nyata perlu ditambahkan melalui server-side proxy/worker dengan allowlist host, secret management, timeout, row limit, parameter binding, audit log, dan redaction.
+
 ### Reports, Bug Inbox, Environments, Integrations
 
 - Aggregate quality trend dan export affordance.
@@ -175,7 +182,7 @@ Versi demo tidak membutuhkan environment variable untuk ditampilkan. Jika nanti 
 - TypeScript diagnostics.
 - Responsive CSS dan reduced-motion support.
 - Focus-visible states dan text labels untuk status.
-- Route manifest `client/public/manus-routes.json`.
+- Route manifest `client/public/manus-routes.json`, termasuk `/api-lab` dan `/db-lab`.
 - Existing server starter Express/tRPC/Drizzle tetap tersedia untuk pengembangan backend berikutnya.
 
 ## 4. Menjalankan QAflow secara lokal

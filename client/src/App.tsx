@@ -5,6 +5,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ModulePage, Overview } from "./pages/QaPages";
+import { LabsPage } from "./pages/LabsPage";
 
 function Router() {
   return <Switch>
@@ -16,6 +17,8 @@ function Router() {
     <Route path="/bugs"><ModulePage kind="bugs" /></Route>
     <Route path="/environments"><ModulePage kind="environments" /></Route>
     <Route path="/integrations"><ModulePage kind="integrations" /></Route>
+    <Route path="/api-lab"><LabsPage kind="api" /></Route>
+    <Route path="/db-lab"><LabsPage kind="db" /></Route>
     <Route path="/404" component={NotFound} />
     <Route component={NotFound} />
   </Switch>;
