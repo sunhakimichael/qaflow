@@ -23,6 +23,8 @@ Website ini dibangun berdasarkan spesifikasi `web-qa.md` dan saat ini berfokus p
 - Environments dengan allowed hosts, connection status, dan protection untuk production.
 - Integrations cards untuk Jira, ClickUp, dan notifikasi.
 - Responsive mobile shell dengan sidebar drawer.
+- UI dua bahasa (Indonesia/English) dengan tombol ID/EN di topbar; pilihan tersimpan di browser.
+- Pencarian global ⌘K dan deep link detail (mis. `/runs/RUN-127`, `/requirements/REQ-045`).
 - Route manifest di `client/public/manus-routes.json`.
 
 ## Teknologi

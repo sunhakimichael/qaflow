@@ -1,3 +1,5 @@
+import type { Localized } from "@/i18n";
+
 export type Status =
   | "passed"
   | "failed"
@@ -5,36 +7,50 @@ export type Status =
   | "running"
   | "open"
   | "flaky"
-  | "approved";
+  | "approved"
+  | "covered"
+  | "partial"
+  | "uncovered"
+  | "in-progress"
+  | "resolved";
+
+/** Aggregate totals; tables below show a sample of these records. */
+export const totals = {
+  requirements: 224,
+  uncoveredRequirements: 41,
+  testCases: 312,
+  testCasesInReview: 8,
+  runs: 128,
+};
 
 export const metrics = [
   {
-    label: "Pass rate",
+    label: { id: "Pass rate", en: "Pass rate" },
     value: "94.8%",
     delta: "+3.2%",
     tone: "lime",
-    detail: "vs 7 hari lalu",
+    detail: { id: "vs 7 hari lalu", en: "vs 7 days ago" },
   },
   {
-    label: "Requirement coverage",
+    label: { id: "Coverage requirement", en: "Requirement coverage" },
     value: "82%",
     delta: "+6.0%",
     tone: "blue",
-    detail: "184 dari 224 requirement",
+    detail: { id: "184 dari 224 requirement", en: "184 of 224 requirements" },
   },
   {
-    label: "Open bugs",
+    label: { id: "Bug terbuka", en: "Open bugs" },
     value: "7",
     delta: "−2",
     tone: "coral",
-    detail: "3 high priority",
+    detail: { id: "3 prioritas tinggi", en: "3 high priority" },
   },
   {
-    label: "Flaky tests",
+    label: { id: "Test flaky", en: "Flaky tests" },
     value: "3",
     delta: "−1",
     tone: "amber",
-    detail: "di bawah target 3%",
+    detail: { id: "di bawah target 3%", en: "below the 3% target" },
   },
 ];
 
@@ -56,13 +72,47 @@ export const trend = [
 ];
 
 export const coverage = [
-  { label: "With approved test", value: 64, count: "143 req", tone: "lime" },
-  { label: "Automated", value: 51, count: "114 req", tone: "blue" },
-  { label: "Needs review", value: 18, count: "40 req", tone: "amber" },
-  { label: "No coverage", value: 18, count: "41 req", tone: "coral" },
+  {
+    label: { id: "Dengan test disetujui", en: "With approved test" },
+    value: 64,
+    count: { id: "143 req", en: "143 req" },
+    tone: "lime",
+  },
+  {
+    label: { id: "Terotomasi", en: "Automated" },
+    value: 51,
+    count: { id: "114 req", en: "114 req" },
+    tone: "blue",
+  },
+  {
+    label: { id: "Perlu review", en: "Needs review" },
+    value: 18,
+    count: { id: "40 req", en: "40 req" },
+    tone: "amber",
+  },
+  {
+    label: { id: "Tanpa coverage", en: "No coverage" },
+    value: 18,
+    count: { id: "41 req", en: "41 req" },
+    tone: "coral",
+  },
 ];
 
-export const runs = [
+export type TraceNode = { title: Localized; detail: Localized };
+
+export type Run = {
+  id: string;
+  title: string;
+  status: Status;
+  env: string;
+  pass: string;
+  duration: string;
+  trigger: Localized;
+  time: Localized;
+  trace?: TraceNode[];
+};
+
+export const runs: Run[] = [
   {
     id: "RUN-128",
     title: "Smoke suite",
@@ -70,8 +120,8 @@ export const runs = [
     env: "staging",
     pass: "42/42",
     duration: "08m 42s",
-    trigger: "CI / main",
-    time: "12 min lalu",
+    trigger: { id: "CI / main", en: "CI / main" },
+    time: { id: "12 menit lalu", en: "12 min ago" },
   },
   {
     id: "RUN-127",
@@ -80,8 +130,44 @@ export const runs = [
     env: "staging",
     pass: "31/36",
     duration: "14m 18s",
-    trigger: "Aisha Rahman",
-    time: "1 jam lalu",
+    trigger: { id: "Aisha Rahman", en: "Aisha Rahman" },
+    time: { id: "1 jam lalu", en: "1 hour ago" },
+    trace: [
+      {
+        title: {
+          id: "REQ-043 · Payment validation",
+          en: "REQ-043 · Payment validation",
+        },
+        detail: {
+          id: "3 test case tertaut · 2 disetujui",
+          en: "3 linked test cases · 2 approved",
+        },
+      },
+      {
+        title: {
+          id: "TC-0046 · Tolak kartu kadaluarsa",
+          en: "TC-0046 · Tolak kartu kadaluarsa",
+        },
+        detail: {
+          id: "API assertion gagal pada retry #2",
+          en: "API assertion failed on retry #2",
+        },
+      },
+      {
+        title: { id: "Fingerprint 7f2a9c", en: "Fingerprint 7f2a9c" },
+        detail: {
+          id: "5 kemunculan di 2 run · kemungkinan duplikat",
+          en: "5 occurrences across 2 runs · likely duplicate",
+        },
+      },
+      {
+        title: { id: "BUG-219 · Jira PAY-882", en: "BUG-219 · Jira PAY-882" },
+        detail: {
+          id: "Terbuka · Severity tinggi · terakhir terlihat 12 menit lalu",
+          en: "Open · High severity · last seen 12 min ago",
+        },
+      },
+    ],
   },
   {
     id: "RUN-126",
@@ -90,8 +176,8 @@ export const runs = [
     env: "dev",
     pass: "28/28",
     duration: "03m 08s",
-    trigger: "Schedule",
-    time: "3 jam lalu",
+    trigger: { id: "Terjadwal", en: "Schedule" },
+    time: { id: "3 jam lalu", en: "3 hours ago" },
   },
   {
     id: "RUN-125",
@@ -100,8 +186,8 @@ export const runs = [
     env: "staging",
     pass: "67/70",
     duration: "22m 51s",
-    trigger: "CI / release",
-    time: "Kemarin",
+    trigger: { id: "CI / release", en: "CI / release" },
+    time: { id: "Kemarin", en: "Yesterday" },
   },
   {
     id: "RUN-124",
@@ -110,8 +196,8 @@ export const runs = [
     env: "staging",
     pass: "18/18",
     duration: "05m 32s",
-    trigger: "Dimas Putra",
-    time: "Kemarin",
+    trigger: { id: "Dimas Putra", en: "Dimas Putra" },
+    time: { id: "Kemarin", en: "Yesterday" },
   },
 ];
 
@@ -121,7 +207,7 @@ export const requirements = [
     title: "Customer dapat menyimpan alamat pengiriman",
     category: "Checkout",
     priority: "High",
-    coverage: "covered",
+    coverage: "covered" as Status,
     tests: 8,
     source: "PRD v12 · §4.2",
     changed: false,
@@ -131,7 +217,7 @@ export const requirements = [
     title: "Sistem menolak pembayaran dengan kartu kadaluarsa",
     category: "Payments",
     priority: "High",
-    coverage: "review",
+    coverage: "partial" as Status,
     tests: 3,
     source: "PRD v12 · §4.3",
     changed: true,
@@ -141,7 +227,7 @@ export const requirements = [
     title: "Admin dapat mengatur role anggota tim",
     category: "Admin",
     priority: "Medium",
-    coverage: "covered",
+    coverage: "covered" as Status,
     tests: 6,
     source: "PRD v12 · §5.1",
     changed: false,
@@ -151,7 +237,7 @@ export const requirements = [
     title: "Order confirmation dikirim melalui email",
     category: "Orders",
     priority: "Medium",
-    coverage: "none",
+    coverage: "uncovered" as Status,
     tests: 0,
     source: "PRD v12 · §5.4",
     changed: true,
@@ -161,7 +247,7 @@ export const requirements = [
     title: "Pencarian produk mendukung typo tolerance",
     category: "Catalog",
     priority: "Low",
-    coverage: "covered",
+    coverage: "covered" as Status,
     tests: 4,
     source: "PRD v11 · §3.7",
     changed: false,
@@ -171,7 +257,7 @@ export const requirements = [
     title: "Guest checkout tidak memerlukan akun",
     category: "Checkout",
     priority: "High",
-    coverage: "covered",
+    coverage: "covered" as Status,
     tests: 7,
     source: "PRD v11 · §4.1",
     changed: false,
@@ -188,8 +274,8 @@ export const testCases = [
     requirement: "REQ-042",
     suite: "Checkout",
     steps: 7,
-    updated: "2 jam lalu",
-    reason: "Happy path + boundary",
+    updated: { id: "2 jam lalu", en: "2 hours ago" },
+    reason: { id: "Happy path + boundary", en: "Happy path + boundary" },
   },
   {
     id: "TC-0046",
@@ -200,8 +286,11 @@ export const testCases = [
     requirement: "REQ-043",
     suite: "Payments",
     steps: 5,
-    updated: "4 jam lalu",
-    reason: "Negative path + error handling",
+    updated: { id: "4 jam lalu", en: "4 hours ago" },
+    reason: {
+      id: "Negative path + penanganan error",
+      en: "Negative path + error handling",
+    },
   },
   {
     id: "TC-0047",
@@ -212,8 +301,11 @@ export const testCases = [
     requirement: "REQ-044",
     suite: "Permissions",
     steps: 9,
-    updated: "Kemarin",
-    reason: "Role transition + permissions",
+    updated: { id: "Kemarin", en: "Yesterday" },
+    reason: {
+      id: "Transisi role + permission",
+      en: "Role transition + permissions",
+    },
   },
   {
     id: "TC-0048",
@@ -224,8 +316,8 @@ export const testCases = [
     requirement: "REQ-045",
     suite: "Orders",
     steps: 4,
-    updated: "Kemarin",
-    reason: "Integration + async event",
+    updated: { id: "Kemarin", en: "Yesterday" },
+    reason: { id: "Integrasi + event async", en: "Integration + async event" },
   },
   {
     id: "TC-0049",
@@ -236,32 +328,47 @@ export const testCases = [
     requirement: "REQ-046",
     suite: "Catalog",
     steps: 3,
-    updated: "2 hari lalu",
-    reason: "Input validation",
+    updated: { id: "2 hari lalu", en: "2 days ago" },
+    reason: { id: "Validasi input", en: "Input validation" },
   },
 ];
 
 export const attention = [
   {
-    eyebrow: "REVIEW NEEDED",
-    title: "8 draft test case menunggu review",
-    detail: "AI authoring · 12 menit lalu",
+    eyebrow: { id: "PERLU REVIEW", en: "REVIEW NEEDED" },
+    title: {
+      id: "8 draft test case menunggu review",
+      en: "8 draft test cases awaiting review",
+    },
+    detail: {
+      id: "AI authoring · 12 menit lalu",
+      en: "AI authoring · 12 min ago",
+    },
     tone: "amber",
-    action: "Review drafts",
+    action: { id: "Review draft", en: "Review drafts" },
   },
   {
-    eyebrow: "FAILURE CLUSTER",
-    title: "Payment timeout muncul 5×",
-    detail: "Fingerprint 7f2a · RUN-127",
+    eyebrow: { id: "KLASTER KEGAGALAN", en: "FAILURE CLUSTER" },
+    title: {
+      id: "Payment timeout muncul 5×",
+      en: "Payment timeout occurred 5×",
+    },
+    detail: {
+      id: "Fingerprint 7f2a · RUN-127",
+      en: "Fingerprint 7f2a · RUN-127",
+    },
     tone: "coral",
-    action: "Open cluster",
+    action: { id: "Buka klaster", en: "Open cluster" },
   },
   {
-    eyebrow: "COVERAGE GAP",
-    title: "REQ-045 belum memiliki test",
-    detail: "PRD v12 · Orders",
+    eyebrow: { id: "CELAH COVERAGE", en: "COVERAGE GAP" },
+    title: {
+      id: "REQ-045 belum memiliki test",
+      en: "REQ-045 has no test yet",
+    },
+    detail: { id: "PRD v12 · Orders", en: "PRD v12 · Orders" },
     tone: "blue",
-    action: "Create test",
+    action: { id: "Buat test", en: "Create test" },
   },
 ];
 
@@ -270,31 +377,91 @@ export const bugs = [
     id: "BUG-219",
     title: "Payment gateway timeout setelah retry kedua",
     severity: "High",
-    status: "Open",
+    status: "open" as Status,
     fingerprint: "7f2a9c",
     occurrences: 5,
-    lastSeen: "12 menit lalu",
+    lastSeen: { id: "12 menit lalu", en: "12 min ago" },
     tracker: "Jira · PAY-882",
   },
   {
     id: "BUG-218",
     title: "Alamat tersimpan tanpa province pada guest checkout",
     severity: "Medium",
-    status: "In progress",
+    status: "in-progress" as Status,
     fingerprint: "3a91de",
     occurrences: 2,
-    lastSeen: "3 jam lalu",
+    lastSeen: { id: "3 jam lalu", en: "3 hours ago" },
     tracker: "Jira · CHK-441",
   },
   {
     id: "BUG-214",
     title: "Role viewer dapat melihat audit settings",
     severity: "High",
-    status: "Open",
+    status: "open" as Status,
     fingerprint: "ac09b1",
     occurrences: 3,
-    lastSeen: "Kemarin",
-    tracker: "Belum ditautkan",
+    lastSeen: { id: "Kemarin", en: "Yesterday" },
+    tracker: null,
+  },
+  {
+    id: "BUG-213",
+    title: "Voucher ganda terpakai pada checkout paralel",
+    severity: "High",
+    status: "open" as Status,
+    fingerprint: "5be210",
+    occurrences: 2,
+    lastSeen: { id: "Kemarin", en: "Yesterday" },
+    tracker: "Jira · CHK-437",
+  },
+  {
+    id: "BUG-211",
+    title: "Filter kategori tidak tersimpan setelah refresh",
+    severity: "Low",
+    status: "open" as Status,
+    fingerprint: "e41c07",
+    occurrences: 1,
+    lastSeen: { id: "2 hari lalu", en: "2 days ago" },
+    tracker: "Jira · CAT-210",
+  },
+  {
+    id: "BUG-209",
+    title: "Email konfirmasi terkirim dua kali",
+    severity: "Medium",
+    status: "in-progress" as Status,
+    fingerprint: "9d33fa",
+    occurrences: 4,
+    lastSeen: { id: "2 hari lalu", en: "2 days ago" },
+    tracker: "Jira · ORD-118",
+  },
+  {
+    id: "BUG-207",
+    title: "Halaman role tidak memuat pada akun baru",
+    severity: "Medium",
+    status: "open" as Status,
+    fingerprint: "71aa5c",
+    occurrences: 1,
+    lastSeen: { id: "3 hari lalu", en: "3 days ago" },
+    tracker: null,
+  },
+  {
+    id: "BUG-203",
+    title: "Ongkir tidak dihitung ulang setelah ganti alamat",
+    severity: "High",
+    status: "resolved" as Status,
+    fingerprint: "c0d4e8",
+    occurrences: 6,
+    lastSeen: { id: "5 hari lalu", en: "5 days ago" },
+    tracker: "Jira · CHK-402",
+  },
+  {
+    id: "BUG-198",
+    title: "Typo tolerance gagal untuk kata dengan angka",
+    severity: "Low",
+    status: "resolved" as Status,
+    fingerprint: "2f6b91",
+    occurrences: 2,
+    lastSeen: { id: "1 minggu lalu", en: "1 week ago" },
+    tracker: "Jira · CAT-201",
   },
 ];
 
@@ -302,24 +469,24 @@ export const environments = [
   {
     name: "staging",
     url: "https://staging.shopco.id",
-    status: "Connected",
-    last: "2 menit lalu",
+    status: { id: "Terhubung", en: "Connected" },
+    last: { id: "2 menit lalu", en: "2 min ago" },
     production: false,
     hosts: 4,
   },
   {
     name: "dev",
     url: "https://dev.shopco.id",
-    status: "Connected",
-    last: "18 menit lalu",
+    status: { id: "Terhubung", en: "Connected" },
+    last: { id: "18 menit lalu", en: "18 min ago" },
     production: false,
     hosts: 2,
   },
   {
     name: "production",
     url: "https://shopco.id",
-    status: "Protected",
-    last: "Tidak pernah dijalankan",
+    status: { id: "Terlindungi", en: "Protected" },
+    last: { id: "Tidak pernah dijalankan", en: "Never run" },
     production: true,
     hosts: 1,
   },

@@ -1,9 +1,11 @@
-import { useMemo, useState } from "react";
-import { Link } from "wouter";
+import { useState, type ReactNode } from "react";
+import { Link, useLocation } from "wouter";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
   Area,
   AreaChart,
   CartesianGrid,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -45,8 +47,69 @@ import {
   requirements,
   runs,
   testCases,
+  totals,
   trend,
+  type Run,
 } from "@/data/mockQaData";
+import { useT } from "@/i18n";
+import { pagesMessages } from "@/i18n/messages/pages";
+
+type PagesKey = keyof (typeof pagesMessages)["en"];
+
+/** Priority / severity values are data keys; only their display is translated. */
+const LEVEL_KEYS: Record<string, PagesKey> = {
+  High: "levelHigh",
+  Medium: "levelMedium",
+  Low: "levelLow",
+};
+
+/** Accessible modal shell: Escape, focus trap, and click-outside all close it. */
+function Modal({
+  onClose,
+  title,
+  className,
+  overlayClassName,
+  children,
+}: {
+  onClose: () => void;
+  title: string;
+  className: string;
+  overlayClassName: string;
+  children: ReactNode;
+}) {
+  return (
+    <DialogPrimitive.Root open onOpenChange={open => !open && onClose()}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className={overlayClassName} />
+        <DialogPrimitive.Content
+          className={className}
+          aria-describedby={undefined}
+        >
+          <DialogPrimitive.Title className="sr-only">
+            {title}
+          </DialogPrimitive.Title>
+          {children}
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
+  );
+}
+
+/** Makes a table row clickable with mouse and keyboard (Enter / Space). */
+function rowProps(onOpen: () => void) {
+  return {
+    onClick: onOpen,
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onOpen();
+      }
+    },
+    tabIndex: 0,
+    role: "link",
+    style: { cursor: "pointer" },
+  } as const;
+}
 
 function Button({
   children,
@@ -71,35 +134,36 @@ function Button({
 }
 
 export function Overview() {
-  const [drawer, setDrawer] = useState(false);
+  const [, navigate] = useLocation();
   const [dialog, setDialog] = useState<"prd" | "run" | null>(null);
+  const { t, l } = useT(pagesMessages);
   return (
     <AppShell
-      title="Overview"
-      eyebrow="QUALITY CONTROL ROOM"
+      title={t("titleOverview")}
+      eyebrow={t("eyebrowOverview")}
       action={
         <>
           <Button icon={<FileUp size={15} />} onClick={() => setDialog("prd")}>
-            Upload PRD
+            {t("uploadPrd")}
           </Button>
           <Button
             primary
             icon={<Play size={15} />}
             onClick={() => setDialog("run")}
           >
-            Run smoke suite
+            {t("runSmokeSuite")}
           </Button>
         </>
       }
     >
       <div className="metric-grid">
         {metrics.map(metric => (
-          <div className="metric-card" key={metric.label}>
-            <div className="metric-label">{metric.label}</div>
+          <div className="metric-card" key={metric.label.en}>
+            <div className="metric-label">{l(metric.label)}</div>
             <div className="metric-value">{metric.value}</div>
             <div className="metric-foot">
               <em className={metric.tone}>{metric.delta}</em>
-              <span className="metric-detail">{metric.detail}</span>
+              <span className="metric-detail">{l(metric.detail)}</span>
             </div>
           </div>
         ))}
@@ -107,18 +171,18 @@ export function Overview() {
       <div className="dashboard-grid">
         <div className="panel">
           <SectionHeading
-            title="Pass rate & execution duration"
-            detail="14 hari terakhir"
+            title={t("passDurationTitle")}
+            detail={t("last14Days")}
             action={
               <button
                 className="text-link"
                 onClick={() =>
-                  toast("Report detail", {
-                    description: "Membuka aggregate quality report.",
+                  toast(t("reportDetailToast"), {
+                    description: t("reportDetailDesc"),
                   })
                 }
               >
-                View report <ArrowUpRight size={12} />
+                {t("viewReport")} <ArrowUpRight size={12} />
               </button>
             }
           />
@@ -126,7 +190,7 @@ export function Overview() {
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={trend}
-                margin={{ top: 4, right: 8, left: -22, bottom: 0 }}
+                margin={{ top: 4, right: -14, left: -14, bottom: 0 }}
               >
                 <defs>
                   <linearGradient id="passFill" x1="0" y1="0" x2="0" y2="1">
@@ -147,10 +211,30 @@ export function Overview() {
                   interval={2}
                 />
                 <YAxis
+                  yAxisId="pass"
                   domain={[80, 100]}
-                  tick={{ fontSize: 9, fill: "#84918B" }}
+                  ticks={[80, 85, 90, 95, 100]}
+                  unit="%"
+                  tick={{ fontSize: 9, fill: "#6D9C25" }}
                   tickLine={false}
                   axisLine={false}
+                />
+                <YAxis
+                  yAxisId="duration"
+                  orientation="right"
+                  domain={[0, 80]}
+                  ticks={[0, 20, 40, 60, 80]}
+                  unit="m"
+                  tick={{ fontSize: 9, fill: "#5B8DEF" }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <ReferenceLine
+                  yAxisId="pass"
+                  y={95}
+                  stroke="#6D9C25"
+                  strokeDasharray="4 4"
+                  strokeOpacity={0.6}
                 />
                 <Tooltip
                   contentStyle={{
@@ -160,52 +244,54 @@ export function Overview() {
                   }}
                 />
                 <Area
+                  yAxisId="pass"
                   type="monotone"
                   dataKey="pass"
                   stroke="#6D9C25"
                   fill="url(#passFill)"
                   strokeWidth={2.5}
-                  name="Pass rate %"
+                  name={t("chartPassRate")}
                 />
                 <Area
+                  yAxisId="duration"
                   type="monotone"
                   dataKey="duration"
                   stroke="#5B8DEF"
                   fill="none"
                   strokeWidth={2}
-                  name="Duration / min"
+                  name={t("chartDuration")}
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
           <div className="legend">
             <span>
-              <i style={{ background: "#6D9C25" }} /> Pass rate
+              <i style={{ background: "#6D9C25" }} /> {t("legendPassRate")}
             </span>
             <span>
-              <i style={{ background: "#5B8DEF" }} /> Duration
+              <i style={{ background: "#5B8DEF" }} /> {t("legendDuration")}
             </span>
             <span style={{ marginLeft: "auto" }}>
-              Target <b>≥ 95%</b>
+              {t("legendTarget")} <b>≥ 95%</b>
             </span>
           </div>
         </div>
         <div className="panel">
           <SectionHeading
-            title="Requirement coverage"
-            detail="224 total requirements"
+            title={t("requirementCoverage")}
+            detail={t("totalRequirements", { count: totals.requirements })}
             action={
               <Link href="/requirements" className="text-link">
-                View all <ArrowUpRight size={12} />
+                {t("viewAll")} <ArrowUpRight size={12} />
               </Link>
             }
           />
           {coverage.map(item => (
-            <div className="coverage-row" key={item.label}>
+            <div className="coverage-row" key={item.label.en}>
               <div className="coverage-top">
-                <span>{item.label}</span>
+                <span>{l(item.label)}</span>
                 <span>
-                  {item.value}% · {item.count}
+                  {item.value}% · {l(item.count)}
                 </span>
               </div>
               <div className="bar">
@@ -223,9 +309,7 @@ export function Overview() {
               alignItems: "center",
             }}
           >
-            <span className="subtext">
-              Coverage naik sejak PRD v12 diproses
-            </span>
+            <span className="subtext">{t("coverageUp")}</span>
             <span className="status-chip status-lime">+6.0%</span>
           </div>
         </div>
@@ -233,38 +317,39 @@ export function Overview() {
       <div className="dashboard-grid">
         <div className="panel table-panel">
           <SectionHeading
-            title="Recent test runs"
-            detail="Latest activity across environments"
+            title={t("recentRuns")}
+            detail={t("recentRunsDetail")}
             action={
               <Link href="/runs" className="text-link">
-                All runs <ArrowUpRight size={12} />
+                {t("allRuns")} <ArrowUpRight size={12} />
               </Link>
             }
           />
-          <RunTable compact onRow={() => setDrawer(true)} />
+          <RunTable compact onRow={run => navigate(`/runs/${run.id}`)} />
         </div>
         <div className="panel">
           <SectionHeading
-            title="Needs attention"
-            detail="Prioritas untuk hari ini"
+            title={t("needsAttention")}
+            detail={t("needsAttentionDetail")}
           />
           {attention.map(item => (
             <div
               className={`attention-item tone-${item.tone}`}
-              key={item.title}
-              onClick={() => toast(item.action, { description: item.title })}
+              key={item.eyebrow.en}
+              onClick={() =>
+                toast(l(item.action), { description: l(item.title) })
+              }
             >
-              <span className="eyebrow">{item.eyebrow}</span>
-              <h3>{item.title}</h3>
-              <p>{item.detail}</p>
+              <span className="eyebrow">{l(item.eyebrow)}</span>
+              <h3>{l(item.title)}</h3>
+              <p>{l(item.detail)}</p>
               <div className="attention-action">
-                {item.action} <ChevronRight size={11} />
+                {l(item.action)} <ChevronRight size={11} />
               </div>
             </div>
           ))}
         </div>
       </div>
-      {drawer && <TraceDrawer onClose={() => setDrawer(false)} />}
       {dialog === "prd" && <UploadDialog onClose={() => setDialog(null)} />}
       {dialog === "run" && <RunDialog onClose={() => setDialog(null)} />}
     </AppShell>
@@ -274,30 +359,29 @@ export function Overview() {
 function RunTable({
   compact = false,
   onRow,
+  rows = runs,
 }: {
   compact?: boolean;
-  onRow?: () => void;
+  onRow: (run: Run) => void;
+  rows?: Run[];
 }) {
+  const { t, l } = useT(pagesMessages);
   return (
     <table className="data-table">
       <thead>
         <tr>
-          <th>Run</th>
-          <th>Status</th>
-          <th>Environment</th>
-          <th>Result</th>
-          <th>Duration</th>
-          <th>Triggered by</th>
+          <th>{t("colRun")}</th>
+          <th>{t("colStatus")}</th>
+          <th>{t("colEnvironment")}</th>
+          <th>{t("colResult")}</th>
+          <th>{t("colDuration")}</th>
+          <th>{t("colTriggeredBy")}</th>
           <th />
         </tr>
       </thead>
       <tbody>
-        {runs.slice(0, compact ? 5 : runs.length).map(run => (
-          <tr
-            key={run.id}
-            onClick={onRow}
-            style={{ cursor: onRow ? "pointer" : "default" }}
-          >
+        {rows.slice(0, compact ? 5 : rows.length).map(run => (
+          <tr key={run.id} {...rowProps(() => onRow(run))}>
             <td>
               <span className="id-code">{run.id}</span>
               <span className="subtext">{run.title}</span>
@@ -313,8 +397,8 @@ function RunTable({
             </td>
             <td>{run.duration}</td>
             <td>
-              <span className="subtext">{run.trigger}</span>
-              <span className="subtext">{run.time}</span>
+              <span className="subtext">{l(run.trigger)}</span>
+              <span className="subtext">{l(run.time)}</span>
             </td>
             <td>
               <MoreHorizontal size={15} color="#A7B1AC" />
@@ -326,135 +410,188 @@ function RunTable({
   );
 }
 
-function TraceDrawer({ onClose }: { onClose: () => void }) {
+function DetailDrawer({
+  onClose,
+  eyebrow,
+  title,
+  meta,
+  children,
+}: {
+  onClose: () => void;
+  eyebrow: string;
+  title: string;
+  meta?: string;
+  children: ReactNode;
+}) {
+  const { t } = useT(pagesMessages);
   return (
-    <>
-      <div className="drawer-scrim" onClick={onClose} />
-      <aside className="trace-drawer">
-        <button
-          className="icon-button drawer-close"
-          onClick={onClose}
-          aria-label="Tutup detail"
-        >
-          <X size={17} />
-        </button>
-        <span className="eyebrow">RUN DETAIL · RUN-127</span>
-        <h2 style={{ fontSize: 22, margin: "9px 0 6px" }}>
-          Checkout regression
-        </h2>
-        <p style={{ color: "#6B7A8D", fontSize: 11, margin: 0 }}>
-          staging · triggered by Aisha Rahman · 1 jam lalu
+    <Modal
+      onClose={onClose}
+      title={title}
+      className="trace-drawer"
+      overlayClassName="drawer-scrim"
+    >
+      <DialogPrimitive.Close
+        className="icon-button drawer-close"
+        aria-label={t("closeDetail")}
+      >
+        <X size={17} />
+      </DialogPrimitive.Close>
+      <span className="eyebrow">{eyebrow}</span>
+      <h2 style={{ fontSize: 22, margin: "9px 0 6px" }}>{title}</h2>
+      {meta && (
+        <p style={{ color: "#6B7A8D", fontSize: 11, margin: 0 }}>{meta}</p>
+      )}
+      {children}
+    </Modal>
+  );
+}
+
+function TraceLine({ nodes }: { nodes: { title: string; detail: string }[] }) {
+  return (
+    <div className="trace-line">
+      {nodes.map(node => (
+        <div className="trace-node" key={node.title}>
+          <h4>{node.title}</h4>
+          <p>{node.detail}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RunDetail({ run, onClose }: { run: Run; onClose: () => void }) {
+  const failed = run.status !== "passed";
+  const { t, l } = useT(pagesMessages);
+  return (
+    <DetailDrawer
+      onClose={onClose}
+      eyebrow={t("runDetailEyebrow", { id: run.id })}
+      title={run.title}
+      meta={t("runMeta", {
+        env: run.env,
+        trigger: l(run.trigger),
+        time: l(run.time),
+      })}
+    >
+      <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+        <StatusChip status={run.status} />
+        <span className="tag">{t("passedCount", { pass: run.pass })}</span>
+        <span className="tag">{run.duration}</span>
+      </div>
+      {run.trace ? (
+        <TraceLine
+          nodes={run.trace.map(node => ({
+            title: l(node.title),
+            detail: l(node.detail),
+          }))}
+        />
+      ) : (
+        <p className="subtext" style={{ margin: "24px 0" }}>
+          {failed ? t("traceUnavailable") : t("allPassed")}
         </p>
-        <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
-          <StatusChip status="failed" />
-          <span className="tag">31 / 36 passed</span>
-          <span className="tag">14m 18s</span>
-        </div>
-        <div className="trace-line">
-          <div className="trace-node">
-            <h4>REQ-043 · Payment validation</h4>
-            <p>3 linked test cases · 2 approved</p>
-          </div>
-          <div className="trace-node">
-            <h4>TC-0046 · Tolak kartu kadaluarsa</h4>
-            <p>API assertion failed on retry #2</p>
-          </div>
-          <div className="trace-node">
-            <h4>Fingerprint 7f2a9c</h4>
-            <p>5 occurrences across 2 runs · likely duplicate</p>
-          </div>
-          <div className="trace-node">
-            <h4>BUG-219 · Jira PAY-882</h4>
-            <p>Open · High severity · last seen 12 menit lalu</p>
-          </div>
-        </div>
+      )}
+      {failed && (
         <div style={{ display: "flex", gap: 8, marginTop: 5 }}>
           <Button
             onClick={() =>
-              toast("Rerun queued", {
-                description: "5 failed test akan dijalankan ulang di staging.",
+              toast(t("rerunQueued"), {
+                description: t("rerunQueuedDesc", { id: run.id, env: run.env }),
               })
             }
             icon={<Play size={14} />}
           >
-            Rerun failed
+            {t("rerunFailed")}
           </Button>
           <Button
             primary
             onClick={() =>
-              toast("Bug already linked", {
-                description:
-                  "Fingerprint 7f2a9c telah ditautkan ke Jira PAY-882.",
+              toast(t("bugAlreadyLinked"), {
+                description: t("bugAlreadyLinkedDesc"),
               })
             }
             icon={<BugIcon />}
           >
-            Create bug
+            {t("createBug")}
           </Button>
         </div>
-      </aside>
-    </>
+      )}
+    </DetailDrawer>
   );
 }
+
 function BugIcon() {
   return <span style={{ fontSize: 14 }}>!</span>;
 }
 function UploadDialog({ onClose }: { onClose: () => void }) {
+  const { t } = useT(pagesMessages);
   return (
-    <div className="dialog-backdrop">
-      <div className="dialog-card">
+    <Modal
+      onClose={onClose}
+      title={t("uploadTitle")}
+      className="dialog-card"
+      overlayClassName="dialog-backdrop"
+    >
+      <div>
         <div className="dialog-head">
           <div>
-            <span className="eyebrow">PRD INGESTION</span>
-            <h2>Upload product requirements</h2>
-            <p>
-              QAflow akan mengekstrak requirement dan menyimpannya sebagai draft
-              untuk direview.
-            </p>
+            <span className="eyebrow">{t("prdIngestion")}</span>
+            <h2>{t("uploadTitle")}</h2>
+            <p>{t("uploadDesc")}</p>
           </div>
-          <button className="icon-button" onClick={onClose} aria-label="Tutup">
+          <button
+            className="icon-button"
+            onClick={onClose}
+            aria-label={t("close")}
+          >
             <X size={17} />
           </button>
         </div>
         <div className="dropzone">
           <UploadCloud size={24} />
-          <strong>Drop PRD di sini atau pilih file</strong>
-          <p>Markdown, PDF, atau DOCX · Maks. 25 MB</p>
+          <strong>{t("dropPrd")}</strong>
+          <p>{t("fileTypes")}</p>
         </div>
         <div className="dialog-actions">
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>{t("cancel")}</Button>
           <Button
             primary
             onClick={() => {
               onClose();
-              toast("PRD queued for extraction", {
-                description:
-                  "PRD v13 masuk antrean parsing. Requirement baru akan muncul sebagai draft.",
+              toast(t("prdQueued"), {
+                description: t("prdQueuedDesc"),
               });
             }}
             icon={<FileUp size={14} />}
           >
-            Start extraction
+            {t("startExtraction")}
           </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 function RunDialog({ onClose }: { onClose: () => void }) {
+  const { t } = useT(pagesMessages);
   return (
-    <div className="dialog-backdrop">
-      <div className="dialog-card">
+    <Modal
+      onClose={onClose}
+      title={t("runSmokeSuite")}
+      className="dialog-card"
+      overlayClassName="dialog-backdrop"
+    >
+      <div>
         <div className="dialog-head">
           <div>
-            <span className="eyebrow">NEW TEST RUN</span>
-            <h2>Run smoke suite</h2>
-            <p>
-              Hanya test case approved dengan automation aktif yang akan
-              dijalankan.
-            </p>
+            <span className="eyebrow">{t("newTestRun")}</span>
+            <h2>{t("runSmokeSuite")}</h2>
+            <p>{t("runDialogDesc")}</p>
           </div>
-          <button className="icon-button" onClick={onClose} aria-label="Tutup">
+          <button
+            className="icon-button"
+            onClick={onClose}
+            aria-label={t("close")}
+          >
             <X size={17} />
           </button>
         </div>
@@ -463,14 +600,14 @@ function RunDialog({ onClose }: { onClose: () => void }) {
           style={{ gridTemplateColumns: "1fr 1fr", marginTop: 4 }}
         >
           <label className="field-label">
-            Environment
+            {t("fieldEnvironment")}
             <select className="filter-select">
               <option>staging</option>
               <option>dev</option>
             </select>
           </label>
           <label className="field-label">
-            Browser
+            {t("fieldBrowser")}
             <select className="filter-select">
               <option>Chromium</option>
               <option>Firefox</option>
@@ -479,112 +616,169 @@ function RunDialog({ onClose }: { onClose: () => void }) {
         </div>
         <div className="run-summary">
           <span>
-            <ShieldCheck size={15} /> 42 eligible test cases
+            <ShieldCheck size={15} /> {t("eligibleTests", { count: 42 })}
           </span>
           <span>
-            <Zap size={15} /> 4 workers · 1 retry
+            <Zap size={15} /> {t("workersRetry", { workers: 4, retries: 1 })}
           </span>
         </div>
         <div className="dialog-actions">
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>{t("cancel")}</Button>
           <Button
             primary
             onClick={() => {
               onClose();
-              toast("Run queued", {
-                description: "RUN-129 dibuat dan akan berjalan di staging.",
+              toast(t("runQueued"), {
+                description: t("runQueuedDesc"),
               });
             }}
             icon={<Play size={14} />}
           >
-            Queue run
+            {t("queueRun")}
           </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
+}
+
+type ModuleKind =
+  | "requirements"
+  | "test-cases"
+  | "runs"
+  | "reports"
+  | "bugs"
+  | "environments"
+  | "integrations";
+
+type FilterTab =
+  | "all"
+  | "needsCoverage"
+  | "changed"
+  | "covered"
+  | "inReview"
+  | "approved"
+  | "manual"
+  | "passed"
+  | "failed"
+  | "flaky";
+
+const FILTER_TABS: Partial<Record<ModuleKind, FilterTab[]>> = {
+  requirements: ["all", "needsCoverage", "changed", "covered"],
+  "test-cases": ["all", "inReview", "approved", "manual"],
+  runs: ["all", "passed", "failed", "flaky"],
+};
+
+const FILTER_TAB_LABELS: Record<FilterTab, PagesKey> = {
+  all: "tabAll",
+  needsCoverage: "tabNeedsCoverage",
+  changed: "tabChanged",
+  covered: "tabCovered",
+  inReview: "tabInReview",
+  approved: "tabApproved",
+  manual: "tabManual",
+  passed: "tabPassed",
+  failed: "tabFailed",
+  flaky: "tabFlaky",
+};
+
+function matchesTab(kind: ModuleKind, tab: FilterTab, item: any): boolean {
+  if (tab === "all") return true;
+  if (kind === "requirements") {
+    if (tab === "needsCoverage") return item.coverage !== "covered";
+    if (tab === "changed") return item.changed;
+    return item.coverage === "covered";
+  }
+  if (kind === "test-cases") {
+    if (tab === "inReview") return item.status === "review";
+    if (tab === "approved") return item.status === "approved";
+    return !item.automation;
+  }
+  return item.status === tab;
 }
 
 export function ModulePage({
   kind,
+  selectedId,
 }: {
-  kind:
-    | "requirements"
-    | "test-cases"
-    | "runs"
-    | "reports"
-    | "bugs"
-    | "environments"
-    | "integrations";
+  selectedId?: string;
+  kind: ModuleKind;
 }) {
   const [query, setQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("All");
-  const [drawer, setDrawer] = useState(false);
+  const [activeTab, setActiveTab] = useState<FilterTab>("all");
+  const { t } = useT(pagesMessages);
+  const [, navigate] = useLocation();
+  const open = (id: string) => navigate(`/${kind}/${id}`);
+  const close = () => navigate(`/${kind}`);
   const [dialog, setDialog] = useState<"prd" | "run" | null>(null);
   const config = {
     requirements: {
-      title: "Requirements",
-      eyebrow: "PRD → TRACEABILITY",
-      description:
-        "Satu sumber kebenaran untuk kebutuhan produk dan coverage testing.",
-      cta: "Upload PRD",
+      title: t("titleRequirements"),
+      eyebrow: t("eyebrowRequirements"),
+      description: t("descRequirements"),
+      cta: t("uploadPrd"),
       icon: FileTextIcon,
     },
     "test-cases": {
-      title: "Test Cases",
-      eyebrow: "AUTHORING WORKSPACE",
-      description:
-        "Skenario terstruktur yang siap direview, diotomasi, dan dijalankan.",
-      cta: "Generate test cases",
+      title: t("titleTestCases"),
+      eyebrow: t("eyebrowTestCases"),
+      description: t("descTestCases"),
+      cta: t("ctaGenerateTests"),
       icon: Layers3,
     },
     runs: {
-      title: "Test Runs",
-      eyebrow: "EXECUTION CONTROL ROOM",
-      description: "Pantau eksekusi deterministik di seluruh environment.",
-      cta: "Run suite",
+      title: t("titleRuns"),
+      eyebrow: t("eyebrowRuns"),
+      description: t("descRuns"),
+      cta: t("ctaRunSuite"),
       icon: Play,
     },
     reports: {
-      title: "Reports",
-      eyebrow: "QUALITY INTELLIGENCE",
-      description: "Trend, coverage, dan bukti rilis dalam satu tempat.",
-      cta: "Export report",
+      title: t("titleReports"),
+      eyebrow: t("eyebrowReports"),
+      description: t("descReports"),
+      cta: t("ctaExportReport"),
       icon: Download,
     },
     bugs: {
-      title: "Bug Inbox",
-      eyebrow: "FAILURE → ACTION",
-      description:
-        "Failure cluster yang sudah dideduplikasi untuk ditindaklanjuti.",
-      cta: "Create bug",
+      title: t("titleBugs"),
+      eyebrow: t("eyebrowBugs"),
+      description: t("descBugs"),
+      cta: t("createBug"),
       icon: BugIcon,
     },
     environments: {
-      title: "Environments",
-      eyebrow: "SAFE EXECUTION",
-      description: "Target environment, allowlist, dan guardrail eksekusi.",
-      cta: "Add environment",
+      title: t("titleEnvironments"),
+      eyebrow: t("eyebrowEnvironments"),
+      description: t("descEnvironments"),
+      cta: t("ctaAddEnvironment"),
       icon: ServerIcon,
     },
     integrations: {
-      title: "Integrations",
-      eyebrow: "CONNECTED WORKFLOWS",
-      description: "Hubungkan QAflow ke tracker dan pipeline tim engineering.",
-      cta: "Add integration",
+      title: t("titleIntegrations"),
+      eyebrow: t("eyebrowIntegrations"),
+      description: t("descIntegrations"),
+      cta: t("ctaAddIntegration"),
       icon: PlugIcon,
     },
   }[kind];
-  const filteredReq = requirements.filter(
-    item =>
-      item.title.toLowerCase().includes(query.toLowerCase()) ||
-      item.id.toLowerCase().includes(query.toLowerCase())
-  );
-  const filteredTc = testCases.filter(
-    item =>
-      item.title.toLowerCase().includes(query.toLowerCase()) ||
-      item.id.toLowerCase().includes(query.toLowerCase())
-  );
+  const q = query.toLowerCase();
+  const filterRows = <T extends { id: string; title: string }>(rows: T[]) =>
+    rows.filter(
+      item =>
+        (item.title.toLowerCase().includes(q) ||
+          item.id.toLowerCase().includes(q)) &&
+        matchesTab(kind, activeTab, item)
+    );
+  const filteredReq = filterRows(requirements);
+  const filteredTc = filterRows(testCases);
+  const filteredRuns = filterRows(runs);
+  const [shown, total] =
+    kind === "requirements"
+      ? [filteredReq.length, totals.requirements]
+      : kind === "test-cases"
+        ? [filteredTc.length, totals.testCases]
+        : [filteredRuns.length, totals.runs];
   return (
     <AppShell
       title={config.title}
@@ -598,7 +792,7 @@ export function ModulePage({
               : kind === "runs"
                 ? setDialog("run")
                 : toast(config.cta, {
-                    description: "Action siap dihubungkan ke API platform.",
+                    description: t("actionPendingDesc"),
                   })
           }
           icon={<Plus size={15} />}
@@ -610,7 +804,7 @@ export function ModulePage({
       {kind === "reports" ? (
         <ReportsContent />
       ) : kind === "bugs" ? (
-        <BugsContent onOpen={() => setDrawer(true)} />
+        <BugsContent onOpen={open} />
       ) : kind === "environments" ? (
         <EnvironmentsContent />
       ) : kind === "integrations" ? (
@@ -631,105 +825,248 @@ export function ModulePage({
               <input
                 className="filter-input"
                 style={{ paddingLeft: 31 }}
-                placeholder="Search by ID or title"
+                placeholder={t("searchPlaceholder")}
                 value={query}
                 onChange={e => setQuery(e.target.value)}
               />
             </div>
-            {(kind === "requirements"
-              ? ["All", "Needs coverage", "Changed", "Covered"]
-              : ["All", "Draft", "In review", "Approved"]
-            ).map(tab => (
+            {(FILTER_TABS[kind] ?? (["all"] as FilterTab[])).map(tab => (
               <button
                 key={tab}
                 className={`filter-tab ${activeTab === tab ? "active" : ""}`}
                 onClick={() => setActiveTab(tab)}
               >
-                {tab}
+                {t(FILTER_TAB_LABELS[tab])}
               </button>
             ))}
             <button
               className="secondary-button"
               style={{ padding: "8px 10px" }}
               onClick={() =>
-                toast("Filters", {
-                  description: "Filter drawer tersedia pada versi API.",
+                toast(t("filters"), {
+                  description: t("filtersDesc"),
                 })
               }
             >
-              <Filter size={14} /> Filters
+              <Filter size={14} /> {t("filters")}
             </button>
             <span className="filter-count">
-              {kind === "requirements" ? filteredReq.length : filteredTc.length}{" "}
-              items
+              {t("filterCount", { shown, total })}
             </span>
           </div>
           {kind === "requirements" ? (
-            <RequirementsTable
-              rows={filteredReq}
-              onOpen={() => setDrawer(true)}
-            />
+            <RequirementsTable rows={filteredReq} onOpen={open} />
           ) : kind === "test-cases" ? (
-            <TestCaseTable rows={filteredTc} onOpen={() => setDrawer(true)} />
+            <TestCaseTable rows={filteredTc} onOpen={open} />
           ) : (
-            <RunTable onRow={() => setDrawer(true)} />
+            <RunTable rows={filteredRuns} onRow={run => open(run.id)} />
           )}
         </div>
       )}
-      {drawer && <TraceDrawer onClose={() => setDrawer(false)} />}
+      {selectedId && (
+        <SelectedDetail kind={kind} id={selectedId} onClose={close} />
+      )}
       {dialog === "prd" && <UploadDialog onClose={() => setDialog(null)} />}
       {dialog === "run" && <RunDialog onClose={() => setDialog(null)} />}
     </AppShell>
   );
 }
+function SelectedDetail({
+  kind,
+  id,
+  onClose,
+}: {
+  kind: ModuleKind;
+  id: string;
+  onClose: () => void;
+}) {
+  const { t, l } = useT(pagesMessages);
+  if (kind === "runs") {
+    const run = runs.find(r => r.id === id);
+    return run ? (
+      <RunDetail run={run} onClose={onClose} />
+    ) : (
+      <NotFoundDrawer id={id} onClose={onClose} />
+    );
+  }
+  if (kind === "requirements") {
+    const req = requirements.find(r => r.id === id);
+    if (!req) return <NotFoundDrawer id={id} onClose={onClose} />;
+    const linked = testCases.filter(t => t.requirement === req.id);
+    return (
+      <DetailDrawer
+        onClose={onClose}
+        eyebrow={t("requirementEyebrow", { id: req.id })}
+        title={req.title}
+        meta={`${req.category} · ${req.source}${req.changed ? ` · ${t("changedInV12Meta")}` : ""}`}
+      >
+        <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+          <StatusChip status={req.coverage} />
+          <span className={`tag ${req.priority.toLowerCase()}`}>
+            {LEVEL_KEYS[req.priority]
+              ? t(LEVEL_KEYS[req.priority])
+              : req.priority}
+          </span>
+          <span className="tag">
+            {t("testCasesCount", { count: req.tests })}
+          </span>
+        </div>
+        <TraceLine
+          nodes={
+            linked.length
+              ? linked.map(tc => ({
+                  title: `${tc.id} · ${tc.title}`,
+                  detail: t("tcTraceDetail", {
+                    type: tc.type,
+                    status:
+                      tc.status === "approved"
+                        ? t("tcStatusApproved")
+                        : tc.status === "review"
+                          ? t("tcStatusReview")
+                          : tc.status,
+                    steps: tc.steps,
+                  }),
+                }))
+              : [
+                  {
+                    title: t("noTestCaseYet"),
+                    detail: t("noTestCaseYetDetail"),
+                  },
+                ]
+          }
+        />
+      </DetailDrawer>
+    );
+  }
+  if (kind === "test-cases") {
+    const tc = testCases.find(t => t.id === id);
+    if (!tc) return <NotFoundDrawer id={id} onClose={onClose} />;
+    return (
+      <DetailDrawer
+        onClose={onClose}
+        eyebrow={t("testCaseEyebrow", { id: tc.id })}
+        title={tc.title}
+        meta={t("tcMeta", { suite: tc.suite, updated: l(tc.updated) })}
+      >
+        <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+          <StatusChip status={tc.status} />
+          <span className="tag">{tc.type}</span>
+          <span className="tag">
+            {tc.automation ? t("automated") : t("manual")}
+          </span>
+        </div>
+        <TraceLine
+          nodes={[
+            {
+              title: t("requirementNode", { id: tc.requirement }),
+              detail: t("linkedRequirement"),
+            },
+            { title: t("aiReason"), detail: l(tc.reason) },
+            {
+              title: t("stepsCount", { count: tc.steps }),
+              detail: t("stepEditorSoon"),
+            },
+          ]}
+        />
+      </DetailDrawer>
+    );
+  }
+  if (kind === "bugs") {
+    const bug = bugs.find(b => b.id === id);
+    if (!bug) return <NotFoundDrawer id={id} onClose={onClose} />;
+    return (
+      <DetailDrawer
+        onClose={onClose}
+        eyebrow={t("bugEyebrow", { id: bug.id })}
+        title={bug.title}
+        meta={t("bugMeta", {
+          tracker: bug.tracker ?? t("trackerNotLinked"),
+          lastSeen: l(bug.lastSeen),
+        })}
+      >
+        <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+          <StatusChip status={bug.status} />
+          <span className={`tag ${bug.severity.toLowerCase()}`}>
+            {LEVEL_KEYS[bug.severity]
+              ? t(LEVEL_KEYS[bug.severity])
+              : bug.severity}
+          </span>
+          <span className="tag">
+            {t("occurrencesCount", { count: bug.occurrences })}
+          </span>
+        </div>
+        <TraceLine
+          nodes={[
+            {
+              title: t("fingerprintNode", { fingerprint: bug.fingerprint }),
+              detail: t("fingerprintMerged"),
+            },
+            {
+              title: bug.tracker ?? t("trackerNotLinked"),
+              detail: t("trackerSynced"),
+            },
+          ]}
+        />
+      </DetailDrawer>
+    );
+  }
+  return null;
+}
+
+function NotFoundDrawer({ id, onClose }: { id: string; onClose: () => void }) {
+  const { t } = useT(pagesMessages);
+  return (
+    <DetailDrawer onClose={onClose} eyebrow={t("notFound")} title={id}>
+      <p className="subtext" style={{ marginTop: 18 }}>
+        {t("notFoundDesc")}
+      </p>
+    </DetailDrawer>
+  );
+}
+
 function RequirementsTable({
   rows,
   onOpen,
 }: {
   rows: typeof requirements;
-  onOpen: () => void;
+  onOpen: (id: string) => void;
 }) {
+  const { t } = useT(pagesMessages);
   return (
     <table className="data-table">
       <thead>
         <tr>
-          <th>Requirement</th>
-          <th>Category</th>
-          <th>Priority</th>
-          <th>Coverage</th>
-          <th>Test cases</th>
-          <th>Source</th>
+          <th>{t("colRequirement")}</th>
+          <th>{t("colCategory")}</th>
+          <th>{t("colPriority")}</th>
+          <th>{t("colCoverage")}</th>
+          <th>{t("colTestCases")}</th>
+          <th>{t("colSource")}</th>
           <th />
         </tr>
       </thead>
       <tbody>
         {rows.map(item => (
-          <tr key={item.id} onClick={onOpen} style={{ cursor: "pointer" }}>
+          <tr key={item.id} {...rowProps(() => onOpen(item.id))}>
             <td>
               <span className="id-code">{item.id}</span>
               <span className="row-title subtext">{item.title}</span>
               {item.changed && (
                 <span className="subtext" style={{ color: "#A96D05" }}>
-                  Changed in v12
+                  {t("changedInV12")}
                 </span>
               )}
             </td>
             <td>{item.category}</td>
             <td>
               <span className={`tag ${item.priority.toLowerCase()}`}>
-                {item.priority}
+                {LEVEL_KEYS[item.priority]
+                  ? t(LEVEL_KEYS[item.priority])
+                  : item.priority}
               </span>
             </td>
             <td>
-              <StatusChip
-                status={
-                  item.coverage === "covered"
-                    ? "approved"
-                    : item.coverage === "review"
-                      ? "review"
-                      : "failed"
-                }
-              />
+              <StatusChip status={item.coverage} />
             </td>
             <td>{item.tests}</td>
             <td>
@@ -749,28 +1086,31 @@ function TestCaseTable({
   onOpen,
 }: {
   rows: typeof testCases;
-  onOpen: () => void;
+  onOpen: (id: string) => void;
 }) {
+  const { t, l } = useT(pagesMessages);
   return (
     <table className="data-table">
       <thead>
         <tr>
-          <th>Test case</th>
-          <th>Type</th>
-          <th>Status</th>
-          <th>Requirement</th>
-          <th>Automation</th>
-          <th>Steps</th>
+          <th>{t("colTestCase")}</th>
+          <th>{t("colType")}</th>
+          <th>{t("colStatus")}</th>
+          <th>{t("colRequirement")}</th>
+          <th>{t("colAutomation")}</th>
+          <th>{t("colSteps")}</th>
           <th />
         </tr>
       </thead>
       <tbody>
         {rows.map(item => (
-          <tr key={item.id} onClick={onOpen} style={{ cursor: "pointer" }}>
+          <tr key={item.id} {...rowProps(() => onOpen(item.id))}>
             <td>
               <span className="id-code">{item.id}</span>
               <span className="row-title subtext">{item.title}</span>
-              <span className="subtext">AI reason · {item.reason}</span>
+              <span className="subtext">
+                {t("aiReasonInline", { reason: l(item.reason) })}
+              </span>
             </td>
             <td>
               <span className="tag">{item.type}</span>
@@ -783,9 +1123,11 @@ function TestCaseTable({
             </td>
             <td>
               {item.automation ? (
-                <span className="status-chip status-lime">YES</span>
+                <span className="status-chip status-lime">
+                  {t("automationYes")}
+                </span>
               ) : (
-                <span className="tag">MANUAL</span>
+                <span className="tag">{t("automationManual")}</span>
               )}
             </td>
             <td>{item.steps}</td>
@@ -799,34 +1141,35 @@ function TestCaseTable({
   );
 }
 function ReportsContent() {
+  const { t, l } = useT(pagesMessages);
   return (
     <>
       <div className="metric-grid">
         {metrics.slice(0, 3).map(m => (
-          <div className="metric-card" key={m.label}>
-            <div className="metric-label">{m.label}</div>
+          <div className="metric-card" key={m.label.en}>
+            <div className="metric-label">{l(m.label)}</div>
             <div className="metric-value">{m.value}</div>
             <div className="metric-foot">
               <em className={m.tone}>{m.delta}</em>
-              <span className="metric-detail">{m.detail}</span>
+              <span className="metric-detail">{l(m.detail)}</span>
             </div>
           </div>
         ))}
       </div>
       <div className="panel">
         <SectionHeading
-          title="Quality trend"
-          detail="Export-ready aggregate report"
+          title={t("qualityTrend")}
+          detail={t("qualityTrendDetail")}
           action={
             <Button
               icon={<Download size={14} />}
               onClick={() =>
-                toast("Export queued", {
-                  description: "Report Markdown sedang disiapkan.",
+                toast(t("exportQueued"), {
+                  description: t("exportQueuedDesc"),
                 })
               }
             >
-              Export
+              {t("export")}
             </Button>
           }
         />
@@ -863,49 +1206,72 @@ function ReportsContent() {
     </>
   );
 }
-function BugsContent({ onOpen }: { onOpen: () => void }) {
+function BugsContent({ onOpen }: { onOpen: (id: string) => void }) {
+  const [tab, setTab] = useState<"all" | "open" | "resolved">("open");
+  const { t, l } = useT(pagesMessages);
+  const unresolved = bugs.filter(b => b.status !== "resolved");
+  const resolved = bugs.filter(b => b.status === "resolved");
+  const rows =
+    tab === "open" ? unresolved : tab === "resolved" ? resolved : bugs;
+  const tabs = [
+    { key: "open", label: t("bugTabOpen", { count: unresolved.length }) },
+    {
+      key: "resolved",
+      label: t("bugTabResolved", { count: resolved.length }),
+    },
+    { key: "all", label: t("bugTabAll", { count: bugs.length }) },
+  ] as const;
   return (
     <div className="page-card">
       <div className="filter-row">
-        <button className="filter-tab active">All bugs · 7</button>
-        <button className="filter-tab">Open · 7</button>
-        <button className="filter-tab">Resolved · 18</button>
-        <span className="filter-count">Fingerprint deduplication on</span>
+        {tabs.map(item => (
+          <button
+            key={item.key}
+            className={`filter-tab ${tab === item.key ? "active" : ""}`}
+            onClick={() => setTab(item.key)}
+          >
+            {item.label}
+          </button>
+        ))}
+        <span className="filter-count">{t("dedupOn")}</span>
       </div>
       <table className="data-table">
         <thead>
           <tr>
-            <th>Bug</th>
-            <th>Severity</th>
-            <th>Status</th>
-            <th>Fingerprint</th>
-            <th>Occurrences</th>
-            <th>Tracker</th>
+            <th>{t("colBug")}</th>
+            <th>{t("colSeverity")}</th>
+            <th>{t("colStatus")}</th>
+            <th>{t("colFingerprint")}</th>
+            <th>{t("colOccurrences")}</th>
+            <th>{t("colTracker")}</th>
             <th />
           </tr>
         </thead>
         <tbody>
-          {bugs.map(b => (
-            <tr key={b.id} onClick={onOpen} style={{ cursor: "pointer" }}>
+          {rows.map(b => (
+            <tr key={b.id} {...rowProps(() => onOpen(b.id))}>
               <td>
                 <span className="id-code">{b.id}</span>
                 <span className="row-title subtext">{b.title}</span>
-                <span className="subtext">Last seen {b.lastSeen}</span>
-              </td>
-              <td>
-                <span className={`tag ${b.severity.toLowerCase()}`}>
-                  {b.severity}
+                <span className="subtext">
+                  {t("lastSeen", { time: l(b.lastSeen) })}
                 </span>
               </td>
               <td>
-                <StatusChip status="open" />
-                <span className="subtext">{b.status}</span>
+                <span className={`tag ${b.severity.toLowerCase()}`}>
+                  {LEVEL_KEYS[b.severity]
+                    ? t(LEVEL_KEYS[b.severity])
+                    : b.severity}
+                </span>
+              </td>
+              <td>
+                <StatusChip status={b.status} />
               </td>
               <td>
                 <span className="id-code">{b.fingerprint}</span>
               </td>
               <td>{b.occurrences}×</td>
-              <td>{b.tracker}</td>
+              <td>{b.tracker ?? t("trackerNotLinked")}</td>
               <td>
                 <ChevronRight size={15} color="#A7B1AC" />
               </td>
@@ -917,6 +1283,7 @@ function BugsContent({ onOpen }: { onOpen: () => void }) {
   );
 }
 function EnvironmentsContent() {
+  const { t, l } = useT(pagesMessages);
   return (
     <div className="module-grid">
       {environments.map(env => (
@@ -938,26 +1305,26 @@ function EnvironmentsContent() {
             {env.url}
           </p>
           <p>
-            Allowed hosts · {env.hosts}
+            {t("allowedHosts", { count: env.hosts })}
             <br />
-            Last check · {env.last}
+            {t("lastCheck", { time: l(env.last) })}
           </p>
           <div style={{ marginTop: 18, display: "flex", gap: 7 }}>
             <Button
               onClick={() =>
-                toast("Connection test", {
-                  description: `${env.name} connection healthy.`,
+                toast(t("connectionTest"), {
+                  description: t("connectionHealthy", { env: env.name }),
                 })
               }
             >
-              Test connection
+              {t("testConnection")}
             </Button>
             {env.production && (
               <span
                 className="tag high"
                 style={{ display: "flex", alignItems: "center" }}
               >
-                Protected
+                {l(env.status)}
               </span>
             )}
           </div>
@@ -967,6 +1334,7 @@ function EnvironmentsContent() {
   );
 }
 function IntegrationsContent() {
+  const { t } = useT(pagesMessages);
   return (
     <div className="module-grid">
       <div className="info-card">
@@ -977,18 +1345,16 @@ function IntegrationsContent() {
           <StatusChip status="passed" />
         </div>
         <h3>Jira Software</h3>
-        <p>
-          Automatic bug creation, fingerprint deduplication, and status sync.
-        </p>
+        <p>{t("jiraDesc")}</p>
         <div style={{ marginTop: 18 }}>
           <Button
             onClick={() =>
-              toast("Jira mapping", {
-                description: "Project PAY · Issue type Bug · Label qaflow",
+              toast(t("jiraMapping"), {
+                description: t("jiraMappingDesc"),
               })
             }
           >
-            Configure mapping
+            {t("configureMapping")}
           </Button>
         </div>
       </div>
@@ -1000,20 +1366,20 @@ function IntegrationsContent() {
           >
             <PlugIcon />
           </div>
-          <span className="tag">NOT CONNECTED</span>
+          <span className="tag">{t("notConnected")}</span>
         </div>
         <h3>ClickUp</h3>
-        <p>Connect a second tracker for teams that manage bugs in ClickUp.</p>
+        <p>{t("clickupDesc")}</p>
         <div style={{ marginTop: 18 }}>
           <Button
             primary
             onClick={() =>
-              toast("Integration setup", {
-                description: "OAuth handoff akan tersedia saat API aktif.",
+              toast(t("integrationSetup"), {
+                description: t("oauthSoon"),
               })
             }
           >
-            Connect ClickUp
+            {t("connectClickup")}
           </Button>
         </div>
       </div>
@@ -1025,20 +1391,19 @@ function IntegrationsContent() {
           >
             <BellIcon />
           </div>
-          <span className="tag">OPTIONAL</span>
+          <span className="tag">{t("optional")}</span>
         </div>
-        <h3>Notifications</h3>
-        <p>Slack, Teams, dan email untuk event run.finished dan bug.created.</p>
+        <h3>{t("notificationsTitle")}</h3>
+        <p>{t("notificationsDesc")}</p>
         <div style={{ marginTop: 18 }}>
           <Button
             onClick={() =>
-              toast("Notifications", {
-                description:
-                  "Pilih channel notifikasi setelah webhook dikonfigurasi.",
+              toast(t("notificationsTitle"), {
+                description: t("notificationsToastDesc"),
               })
             }
           >
-            Add channel
+            {t("addChannel")}
           </Button>
         </div>
       </div>

@@ -18,6 +18,20 @@
   --coral-soft: #ffeae5;
   --shadow: 0 16px 40px rgba(17, 35, 58, 0.06);
 }
+/* Map shadcn/ui tokens (used by components/ui/*) onto the QAflow palette. */
+@theme inline {
+  --color-background: var(--panel);
+  --color-foreground: var(--ink);
+  --color-popover: var(--panel);
+  --color-popover-foreground: var(--ink);
+  --color-muted: var(--canvas);
+  --color-muted-foreground: var(--muted);
+  --color-accent: #edf5e5;
+  --color-accent-foreground: var(--ink);
+  --color-border: var(--line);
+  --color-input: var(--line);
+  --color-ring: var(--lime-dark);
+}
 * {
   box-sizing: border-box;
 }
@@ -531,6 +545,10 @@ a {
   font-size: 11px;
 }
 .text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
   color: #5477b4;
   font-size: 11px;
   font-weight: 650;
@@ -623,6 +641,10 @@ a {
   font-size: 11px;
 }
 .attention-item .attention-action {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
   font-size: 10px;
   color: #5e7db0;
   margin-top: 8px;
@@ -642,7 +664,7 @@ a {
 }
 .table-panel {
   padding: 0;
-  overflow: hidden;
+  overflow-x: auto;
 }
 .table-panel .section-heading {
   padding: 20px 20px 4px;
@@ -754,6 +776,7 @@ a {
   background: #eaf0ff;
 }
 .page-card {
+  overflow-x: auto;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -911,7 +934,14 @@ a {
   padding: 16px;
 }
 .dialog-card {
-  width: min(520px, 100%);
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  height: fit-content;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  z-index: 71;
+  width: min(520px, calc(100% - 32px));
   background: #fff;
   border-radius: 12px;
   border: 1px solid var(--line);
@@ -1620,4 +1650,55 @@ a {
     flex-wrap: wrap;
     justify-content: flex-end;
   }
+}
+
+.data-table tbody tr:focus-visible {
+  outline: 2px solid var(--lime-dark);
+  outline-offset: -2px;
+}
+.kv-table {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+  justify-items: start;
+}
+.kv-row {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr auto;
+  gap: 6px;
+  align-items: center;
+  width: 100%;
+}
+.kv-row .filter-input {
+  min-width: 0;
+  width: 100%;
+}
+.body-disabled {
+  display: block;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 11px;
+  background: #f6f7f5;
+}
+.lang-toggle {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+.lang-toggle button {
+  padding: 6px 8px;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.4px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+.lang-toggle button.active {
+  background: var(--ink);
+  color: #fff;
 }

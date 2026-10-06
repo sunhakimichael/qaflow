@@ -4,6 +4,7 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { I18nProvider } from "./i18n";
 import { ModulePage, Overview } from "./pages/QaPages";
 import { LabsPage } from "./pages/LabsPage";
 
@@ -11,20 +12,20 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Overview} />
-      <Route path="/requirements">
-        <ModulePage kind="requirements" />
+      <Route path="/requirements/:id?">
+        {params => <ModulePage kind="requirements" selectedId={params.id} />}
       </Route>
-      <Route path="/test-cases">
-        <ModulePage kind="test-cases" />
+      <Route path="/test-cases/:id?">
+        {params => <ModulePage kind="test-cases" selectedId={params.id} />}
       </Route>
-      <Route path="/runs">
-        <ModulePage kind="runs" />
+      <Route path="/runs/:id?">
+        {params => <ModulePage kind="runs" selectedId={params.id} />}
       </Route>
       <Route path="/reports">
         <ModulePage kind="reports" />
       </Route>
-      <Route path="/bugs">
-        <ModulePage kind="bugs" />
+      <Route path="/bugs/:id?">
+        {params => <ModulePage kind="bugs" selectedId={params.id} />}
       </Route>
       <Route path="/environments">
         <ModulePage kind="environments" />
@@ -47,12 +48,14 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="light">
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </ThemeProvider>
+      <I18nProvider>
+        <ThemeProvider defaultTheme="light">
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </ThemeProvider>
+      </I18nProvider>
     </ErrorBoundary>
   );
 }

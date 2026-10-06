@@ -27,6 +27,13 @@ Dokumen ini menjawab empat kebutuhan umum saat melanjutkan pengembangan QAflow: 
 
 6. Tambahkan route di `client/src/App.tsx` dan entry route yang sama di `client/public/manus-routes.json`.
 
+   **Teks UI wajib dua bahasa (id/en).** Jangan menulis teks langsung di JSX. Tambahkan key ke file pesan di
+   `client/src/i18n/messages/` (`shell.ts`, `pages.ts`, `labs.ts`, atau namespace baru lewat `defineMessages`),
+   lalu pakai `const { t } = useT(namaMessages)` dan `t("key", { var })`. Typecheck gagal bila versi `id`
+   kehilangan key yang ada di `en`. Untuk mock data yang berisi teks antarmuka, pakai tipe `Localized`
+   (`{ id, en }`) dan tampilkan dengan `l(value)`. Bahasa default `id`; pilihan pengguna disimpan di
+   `localStorage` (`qaflow.lang`) dan bisa diganti lewat tombol ID/EN di topbar.
+
 7. Untuk interaksi ringan, gunakan state lokal dan `toast` dari `sonner`. Untuk fitur server, tambahkan prosedur tRPC/API dan schema database secara terpisah; jangan memasukkan secret atau kredensial ke client.
 
 8. Jalankan validasi sebelum commit:
