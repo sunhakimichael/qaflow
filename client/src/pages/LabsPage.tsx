@@ -1,50 +1,739 @@
 import { useState } from "react";
-import { AppShell, SectionHeading, StatusChip } from "@/components/qaflow/AppShell";
-import { Check, ChevronDown, Clock3, Code2, Copy, Database, FileJson, History, Play, Plus, RefreshCcw, Save, Send, ShieldCheck, Table2, Trash2, Workflow, X } from "lucide-react";
+import {
+  AppShell,
+  SectionHeading,
+  StatusChip,
+} from "@/components/qaflow/AppShell";
+import {
+  Check,
+  ChevronDown,
+  Clock3,
+  Code2,
+  Copy,
+  Database,
+  FileJson,
+  History,
+  Play,
+  Plus,
+  RefreshCcw,
+  Save,
+  Send,
+  ShieldCheck,
+  Table2,
+  Trash2,
+  Workflow,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 type LabKind = "api" | "db";
 
 const apiExamples = [
-  { method: "GET", path: "/api/v1/orders?status=paid", name: "List paid orders", status: "200 OK", time: "184 ms" },
-  { method: "POST", path: "/api/v1/orders", name: "Create order", status: "201 Created", time: "312 ms" },
-  { method: "PATCH", path: "/api/v1/orders/:id", name: "Update order status", status: "200 OK", time: "228 ms" },
+  {
+    method: "GET",
+    path: "/api/v1/orders?status=paid",
+    name: "List paid orders",
+    status: "200 OK",
+    time: "184 ms",
+  },
+  {
+    method: "POST",
+    path: "/api/v1/orders",
+    name: "Create order",
+    status: "201 Created",
+    time: "312 ms",
+  },
+  {
+    method: "PATCH",
+    path: "/api/v1/orders/:id",
+    name: "Update order status",
+    status: "200 OK",
+    time: "228 ms",
+  },
 ];
 
 const dbRows = [
-  { id: "ord_1042", email: "alya@shopco.id", status: "paid", total: "Rp 428.000", created: "2026-10-06 14:22" },
-  { id: "ord_1041", email: "raka@shopco.id", status: "paid", total: "Rp 182.000", created: "2026-10-06 14:11" },
-  { id: "ord_1039", email: "nina@shopco.id", status: "pending", total: "Rp 96.500", created: "2026-10-06 13:54" },
-  { id: "ord_1038", email: "bima@shopco.id", status: "cancelled", total: "Rp 1.240.000", created: "2026-10-06 13:38" },
+  {
+    id: "ord_1042",
+    email: "alya@shopco.id",
+    status: "paid",
+    total: "Rp 428.000",
+    created: "2026-10-06 14:22",
+  },
+  {
+    id: "ord_1041",
+    email: "raka@shopco.id",
+    status: "paid",
+    total: "Rp 182.000",
+    created: "2026-10-06 14:11",
+  },
+  {
+    id: "ord_1039",
+    email: "nina@shopco.id",
+    status: "pending",
+    total: "Rp 96.500",
+    created: "2026-10-06 13:54",
+  },
+  {
+    id: "ord_1038",
+    email: "bima@shopco.id",
+    status: "cancelled",
+    total: "Rp 1.240.000",
+    created: "2026-10-06 13:38",
+  },
 ];
 
 export function LabsPage({ kind }: { kind: LabKind }) {
-  const [activeTab, setActiveTab] = useState(kind === "api" ? "Request" : "Query");
-  const [apiStatus, setApiStatus] = useState<"idle" | "running" | "done">("idle");
+  const [activeTab, setActiveTab] = useState(
+    kind === "api" ? "Request" : "Query"
+  );
+  const [apiStatus, setApiStatus] = useState<"idle" | "running" | "done">(
+    "idle"
+  );
   const [apiResponse, setApiResponse] = useState("{");
-  const [sql, setSql] = useState("SELECT\n  id, email, status, total, created_at\nFROM orders\nWHERE status = 'paid'\nORDER BY created_at DESC\nLIMIT 50;");
+  const [sql, setSql] = useState(
+    "SELECT\n  id, email, status, total, created_at\nFROM orders\nWHERE status = 'paid'\nORDER BY created_at DESC\nLIMIT 50;"
+  );
   const [dbRan, setDbRan] = useState(false);
   const isApi = kind === "api";
   const title = isApi ? "API Lab" : "DB Lab";
   const eyebrow = isApi ? "MANUAL API TESTING" : "DATABASE INSPECTOR";
-  return <AppShell title={title} eyebrow={eyebrow} action={<><button className="secondary-button" onClick={() => toast("Saved scenarios", { description: isApi ? "3 API request tersimpan di QA Commerce." : "4 query tersimpan di QA Commerce." })}><History size={14}/> History</button><button className="primary-button" onClick={() => toast(isApi ? "Request saved" : "Query saved", { description: "Scenario dapat dipakai kembali dari Test Cases." })}><Save size={14}/> Save scenario</button></>}>
-    <div className="lab-toolbar"><div className="lab-intro"><div className={`lab-icon ${isApi ? "api" : "db"}`}>{isApi ? <Workflow size={19}/> : <Database size={19}/>}</div><div><h2>{isApi ? "Uji endpoint tanpa berpindah tools" : "Validasi data dengan query yang aman"}</h2><p>{isApi ? "Bangun request, inspect response, dan simpan assertion untuk test case API." : "Jalankan query read-only di environment yang dipilih dan simpan hasilnya ke test case DB."}</p></div></div><label className="lab-select-label">Environment<select className="filter-select"><option>staging · shopco</option><option>dev · shopco</option><option>production · protected</option></select></label></div>
-    {isApi ? <ApiWorkspace activeTab={activeTab} setActiveTab={setActiveTab} status={apiStatus} setStatus={setApiStatus} response={apiResponse} setResponse={setApiResponse}/> : <DbWorkspace activeTab={activeTab} setActiveTab={setActiveTab} sql={sql} setSql={setSql} ran={dbRan} setRan={setDbRan}/>} 
-  </AppShell>;
+  return (
+    <AppShell
+      title={title}
+      eyebrow={eyebrow}
+      action={
+        <>
+          <button
+            className="secondary-button"
+            onClick={() =>
+              toast("Saved scenarios", {
+                description: isApi
+                  ? "3 API request tersimpan di QA Commerce."
+                  : "4 query tersimpan di QA Commerce.",
+              })
+            }
+          >
+            <History size={14} /> History
+          </button>
+          <button
+            className="primary-button"
+            onClick={() =>
+              toast(isApi ? "Request saved" : "Query saved", {
+                description: "Scenario dapat dipakai kembali dari Test Cases.",
+              })
+            }
+          >
+            <Save size={14} /> Save scenario
+          </button>
+        </>
+      }
+    >
+      <div className="lab-toolbar">
+        <div className="lab-intro">
+          <div className={`lab-icon ${isApi ? "api" : "db"}`}>
+            {isApi ? <Workflow size={19} /> : <Database size={19} />}
+          </div>
+          <div>
+            <h2>
+              {isApi
+                ? "Uji endpoint tanpa berpindah tools"
+                : "Validasi data dengan query yang aman"}
+            </h2>
+            <p>
+              {isApi
+                ? "Bangun request, inspect response, dan simpan assertion untuk test case API."
+                : "Jalankan query read-only di environment yang dipilih dan simpan hasilnya ke test case DB."}
+            </p>
+          </div>
+        </div>
+        <label className="lab-select-label">
+          Environment
+          <select className="filter-select">
+            <option>staging · shopco</option>
+            <option>dev · shopco</option>
+            <option>production · protected</option>
+          </select>
+        </label>
+      </div>
+      {isApi ? (
+        <ApiWorkspace
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          status={apiStatus}
+          setStatus={setApiStatus}
+          response={apiResponse}
+          setResponse={setApiResponse}
+        />
+      ) : (
+        <DbWorkspace
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          sql={sql}
+          setSql={setSql}
+          ran={dbRan}
+          setRan={setDbRan}
+        />
+      )}
+    </AppShell>
+  );
 }
 
-function LabTabs({ tabs, active, onChange }: { tabs: string[]; active: string; onChange: (value: string) => void }) { return <div className="lab-tabs">{tabs.map(tab => <button key={tab} className={active === tab ? "active" : ""} onClick={() => onChange(tab)}>{tab}</button>)}</div>; }
-
-function ApiWorkspace({ activeTab, setActiveTab, status, setStatus, response, setResponse }: { activeTab: string; setActiveTab: (value: string) => void; status: "idle" | "running" | "done"; setStatus: (value: "idle" | "running" | "done") => void; response: string; setResponse: (value: string) => void }) {
-  const run = () => { setStatus("running"); setTimeout(() => { setStatus("done"); setResponse(JSON.stringify({ data: [{ id: "ord_1042", status: "paid", total: 428000 }], meta: { page: 1, total: 142 }, requestId: "req_01HXY" }, null, 2)); toast("Request passed", { description: "GET /api/v1/orders responded 200 in 184 ms." }); }, 480); };
-  return <div className="lab-layout"><div className="lab-main panel"><div className="lab-panel-header"><div><span className="eyebrow">REQUEST BUILDER</span><h2>List paid orders</h2></div><div className="lab-header-actions"><span className="tag">Saved in Checkout</span><button className="icon-button" aria-label="More request actions"><Code2 size={16}/></button></div></div><LabTabs tabs={["Request", "Assertions", "Variables"]} active={activeTab} onChange={setActiveTab}/>{activeTab === "Request" ? <><div className="request-line"><select className="method-select"><option>GET</option><option>POST</option><option>PATCH</option><option>DELETE</option></select><input className="url-input" defaultValue="https://staging.shopco.id/api/v1/orders?status=paid" aria-label="Request URL"/><button className="primary-button send-button" onClick={run} disabled={status === "running"}>{status === "running" ? <RefreshCcw size={14} className="spin"/> : <Send size={14}/>} {status === "running" ? "Sending" : "Send"}</button></div><div className="request-grid"><div><label className="field-label">Authorization<select className="filter-select"><option>Bearer · staging token</option><option>API Key</option><option>None</option></select></label><label className="field-label">Headers<textarea className="code-field small" defaultValue={'Accept: application/json\nX-QA-Run: manual'} /></label></div><div><label className="field-label">Body <span className="field-muted">JSON</span><textarea className="code-field" defaultValue={'{\n  "include": ["items", "payment"]\n}'} /></label></div></div></> : activeTab === "Assertions" ? <AssertionsPanel/> : <VariablesPanel/>}<ResponsePanel status={status} response={response}/></div><aside className="lab-side"><SectionHeading title="Saved requests" detail="3 scenarios in Checkout" action={<button className="icon-button" aria-label="Tambah request"><Plus size={15}/></button>}/>{apiExamples.map((example, index) => <button className={`saved-item ${index === 0 ? "selected" : ""}`} key={example.path}><span className={`method-pill ${example.method.toLowerCase()}`}>{example.method}</span><span><strong>{example.name}</strong><small>{example.path}</small></span><StatusChip status="passed"/></button>)}<div className="safe-note"><ShieldCheck size={16}/><div><strong>Safe by default</strong><p>Secret hanya dipakai saat request dan disensor dari history.</p></div></div></aside></div>;
+function LabTabs({
+  tabs,
+  active,
+  onChange,
+}: {
+  tabs: string[];
+  active: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="lab-tabs">
+      {tabs.map(tab => (
+        <button
+          key={tab}
+          className={active === tab ? "active" : ""}
+          onClick={() => onChange(tab)}
+        >
+          {tab}
+        </button>
+      ))}
+    </div>
+  );
 }
 
-function AssertionsPanel(){ return <div className="assertions-panel"><div className="assertion-row"><Check size={15}/><span>Status code equals</span><select className="filter-select"><option>200</option><option>201</option><option>204</option></select><button className="icon-button"><Trash2 size={14}/></button></div><div className="assertion-row"><Check size={15}/><span>Response time less than</span><input className="small-input" defaultValue="500"/><span>ms</span><button className="icon-button"><Trash2 size={14}/></button></div><div className="assertion-row"><Check size={15}/><span>JSON path exists</span><input className="assertion-input" defaultValue="$.data[*].id"/><button className="icon-button"><Trash2 size={14}/></button></div><button className="secondary-button" style={{marginTop:14}}><Plus size={14}/> Add assertion</button></div>; }
-function VariablesPanel(){ return <div className="variables-panel"><p className="subtext">Variables dapat dipakai sebagai <code>{"{{env.baseUrl}}"}</code> atau <code>{"{{vars.orderId}}"}</code>.</p><div className="variable-row"><span className="id-code">baseUrl</span><input className="assertion-input" defaultValue="https://staging.shopco.id"/></div><div className="variable-row"><span className="id-code">orderId</span><input className="assertion-input" defaultValue="ord_1042"/></div><button className="secondary-button" style={{marginTop:14}}><Plus size={14}/> Add variable</button></div>; }
-function ResponsePanel({ status, response }: { status: "idle" | "running" | "done"; response: string }) { return <div className="response-panel"><div className="response-head"><div><span className="eyebrow">RESPONSE</span><h3>{status === "idle" ? "Run request to inspect response" : status === "running" ? "Waiting for response…" : "200 OK"}</h3></div><div className="response-meta">{status === "done" && <><span className="status-chip status-lime">PASS</span><span><Clock3 size={12}/>184 ms</span><span>1.2 KB</span></>}{status === "done" && <button className="icon-button" aria-label="Copy response" onClick={() => { void navigator.clipboard?.writeText(response); toast("Response copied"); }}><Copy size={14}/></button>}</div></div>{status === "idle" ? <div className="response-empty"><FileJson size={24}/><p>Response body, headers, dan assertion result akan tampil di sini.</p></div> : <pre className="response-code">{status === "running" ? "Sending request…" : response}</pre>}</div>; }
+function ApiWorkspace({
+  activeTab,
+  setActiveTab,
+  status,
+  setStatus,
+  response,
+  setResponse,
+}: {
+  activeTab: string;
+  setActiveTab: (value: string) => void;
+  status: "idle" | "running" | "done";
+  setStatus: (value: "idle" | "running" | "done") => void;
+  response: string;
+  setResponse: (value: string) => void;
+}) {
+  const run = () => {
+    setStatus("running");
+    setTimeout(() => {
+      setStatus("done");
+      setResponse(
+        JSON.stringify(
+          {
+            data: [{ id: "ord_1042", status: "paid", total: 428000 }],
+            meta: { page: 1, total: 142 },
+            requestId: "req_01HXY",
+          },
+          null,
+          2
+        )
+      );
+      toast("Request passed", {
+        description: "GET /api/v1/orders responded 200 in 184 ms.",
+      });
+    }, 480);
+  };
+  return (
+    <div className="lab-layout">
+      <div className="lab-main panel">
+        <div className="lab-panel-header">
+          <div>
+            <span className="eyebrow">REQUEST BUILDER</span>
+            <h2>List paid orders</h2>
+          </div>
+          <div className="lab-header-actions">
+            <span className="tag">Saved in Checkout</span>
+            <button className="icon-button" aria-label="More request actions">
+              <Code2 size={16} />
+            </button>
+          </div>
+        </div>
+        <LabTabs
+          tabs={["Request", "Assertions", "Variables"]}
+          active={activeTab}
+          onChange={setActiveTab}
+        />
+        {activeTab === "Request" ? (
+          <>
+            <div className="request-line">
+              <select className="method-select">
+                <option>GET</option>
+                <option>POST</option>
+                <option>PATCH</option>
+                <option>DELETE</option>
+              </select>
+              <input
+                className="url-input"
+                defaultValue="https://staging.shopco.id/api/v1/orders?status=paid"
+                aria-label="Request URL"
+              />
+              <button
+                className="primary-button send-button"
+                onClick={run}
+                disabled={status === "running"}
+              >
+                {status === "running" ? (
+                  <RefreshCcw size={14} className="spin" />
+                ) : (
+                  <Send size={14} />
+                )}{" "}
+                {status === "running" ? "Sending" : "Send"}
+              </button>
+            </div>
+            <div className="request-grid">
+              <div>
+                <label className="field-label">
+                  Authorization
+                  <select className="filter-select">
+                    <option>Bearer · staging token</option>
+                    <option>API Key</option>
+                    <option>None</option>
+                  </select>
+                </label>
+                <label className="field-label">
+                  Headers
+                  <textarea
+                    className="code-field small"
+                    defaultValue={"Accept: application/json\nX-QA-Run: manual"}
+                  />
+                </label>
+              </div>
+              <div>
+                <label className="field-label">
+                  Body <span className="field-muted">JSON</span>
+                  <textarea
+                    className="code-field"
+                    defaultValue={'{\n  "include": ["items", "payment"]\n}'}
+                  />
+                </label>
+              </div>
+            </div>
+          </>
+        ) : activeTab === "Assertions" ? (
+          <AssertionsPanel />
+        ) : (
+          <VariablesPanel />
+        )}
+        <ResponsePanel status={status} response={response} />
+      </div>
+      <aside className="lab-side">
+        <SectionHeading
+          title="Saved requests"
+          detail="3 scenarios in Checkout"
+          action={
+            <button className="icon-button" aria-label="Tambah request">
+              <Plus size={15} />
+            </button>
+          }
+        />
+        {apiExamples.map((example, index) => (
+          <button
+            className={`saved-item ${index === 0 ? "selected" : ""}`}
+            key={example.path}
+          >
+            <span className={`method-pill ${example.method.toLowerCase()}`}>
+              {example.method}
+            </span>
+            <span>
+              <strong>{example.name}</strong>
+              <small>{example.path}</small>
+            </span>
+            <StatusChip status="passed" />
+          </button>
+        ))}
+        <div className="safe-note">
+          <ShieldCheck size={16} />
+          <div>
+            <strong>Safe by default</strong>
+            <p>Secret hanya dipakai saat request dan disensor dari history.</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  );
+}
 
-function DbWorkspace({ activeTab, setActiveTab, sql, setSql, ran, setRan }: { activeTab: string; setActiveTab: (value: string) => void; sql: string; setSql: (value: string) => void; ran: boolean; setRan: (value: boolean) => void }) { return <div className="lab-layout"><div className="lab-main panel"><div className="lab-panel-header"><div><span className="eyebrow">READ-ONLY QUERY CONSOLE</span><h2>Orders validation</h2></div><div className="lab-header-actions"><span className="status-chip status-lime"><i/>READ ONLY</span><button className="icon-button" aria-label="More query actions"><Code2 size={16}/></button></div></div><LabTabs tabs={["Query", "Assertions", "Schema"]} active={activeTab} onChange={setActiveTab}/>{activeTab === "Query" ? <><div className="sql-toolbar"><select className="method-select"><option>PostgreSQL</option><option>MySQL</option><option>MongoDB</option></select><span className="tag">qa_readonly@staging</span><span className="toolbar-spacer"/><button className="secondary-button" onClick={() => toast("Query valid", {description:"SELECT statement aman untuk dieksekusi."})}><ShieldCheck size={14}/> Validate</button><button className="primary-button" onClick={() => {setRan(true); toast("Query executed", {description:"4 rows returned in 42 ms."});}}><Play size={14}/> Run query</button></div><textarea className="sql-editor" value={sql} onChange={(e) => setSql(e.target.value)} spellCheck={false}/>{ran ? <DbResult/> : <div className="query-hint"><ShieldCheck size={15}/><span>SQL guard aktif: hanya SELECT/CTE SELECT, parameter binding, timeout, dan row limit.</span></div>}</> : activeTab === "Assertions" ? <DbAssertions/> : <SchemaPanel/>}</div><aside className="lab-side"><SectionHeading title="Saved queries" detail="4 scenarios in Data integrity" action={<button className="icon-button"><Plus size={15}/></button>}/>{["Paid orders have customer email", "No orphan order items", "Unique payment reference", "Order totals match items"].map((name,index)=><button className={`saved-item ${index===0?"selected":""}`} key={name}><span className="method-pill sql"><Database size={13}/></span><span><strong>{name}</strong><small>{index===0?"orders · 50 rows":"integrity check · saved"}</small></span><span className="tag">SQL</span></button>)}<div className="safe-note"><ShieldCheck size={16}/><div><strong>Production protected</strong><p>Write query dan destructive statement diblokir di environment production.</p></div></div></aside></div>; }
-function DbResult(){ return <div className="db-result"><div className="result-toolbar"><span><strong>4 rows</strong> · 42 ms</span><span className="status-chip status-lime">QUERY PASSED</span><button className="icon-button"><Copy size={14}/></button></div><div className="result-table-wrap"><table className="result-table"><thead><tr><th>id</th><th>email</th><th>status</th><th>total</th><th>created_at</th></tr></thead><tbody>{dbRows.map(row=><tr key={row.id}><td>{row.id}</td><td>{row.email}</td><td><span className={`tag ${row.status === "paid" ? "" : "medium"}`}>{row.status}</span></td><td>{row.total}</td><td>{row.created}</td></tr>)}</tbody></table></div></div>; }
-function DbAssertions(){ return <div className="assertions-panel"><div className="assertion-row"><Check size={15}/><span>Row count equals</span><input className="small-input" defaultValue="4"/><button className="icon-button"><Trash2 size={14}/></button></div><div className="assertion-row"><Check size={15}/><span>Column</span><select className="filter-select"><option>status</option><option>total</option><option>email</option></select><span>contains</span><input className="assertion-input" defaultValue="paid"/><button className="icon-button"><Trash2 size={14}/></button></div><button className="secondary-button" style={{marginTop:14}}><Plus size={14}/> Add assertion</button></div>; }
-function SchemaPanel(){ return <div className="schema-panel"><div className="schema-table"><div className="schema-title"><Table2 size={15}/> public.orders</div>{["id uuid PRIMARY KEY","email varchar(255)","status order_status","total integer","created_at timestamptz"].map(field=><div className="schema-field" key={field}><Code2 size={12}/><span>{field}</span></div>)}</div><div className="schema-table"><div className="schema-title"><Table2 size={15}/> public.order_items</div>{["id uuid PRIMARY KEY","order_id uuid FK","sku varchar(64)","quantity integer","unit_price integer"].map(field=><div className="schema-field" key={field}><Code2 size={12}/><span>{field}</span></div>)}</div></div>; }
+function AssertionsPanel() {
+  return (
+    <div className="assertions-panel">
+      <div className="assertion-row">
+        <Check size={15} />
+        <span>Status code equals</span>
+        <select className="filter-select">
+          <option>200</option>
+          <option>201</option>
+          <option>204</option>
+        </select>
+        <button className="icon-button">
+          <Trash2 size={14} />
+        </button>
+      </div>
+      <div className="assertion-row">
+        <Check size={15} />
+        <span>Response time less than</span>
+        <input className="small-input" defaultValue="500" />
+        <span>ms</span>
+        <button className="icon-button">
+          <Trash2 size={14} />
+        </button>
+      </div>
+      <div className="assertion-row">
+        <Check size={15} />
+        <span>JSON path exists</span>
+        <input className="assertion-input" defaultValue="$.data[*].id" />
+        <button className="icon-button">
+          <Trash2 size={14} />
+        </button>
+      </div>
+      <button className="secondary-button" style={{ marginTop: 14 }}>
+        <Plus size={14} /> Add assertion
+      </button>
+    </div>
+  );
+}
+function VariablesPanel() {
+  return (
+    <div className="variables-panel">
+      <p className="subtext">
+        Variables dapat dipakai sebagai <code>{"{{env.baseUrl}}"}</code> atau{" "}
+        <code>{"{{vars.orderId}}"}</code>.
+      </p>
+      <div className="variable-row">
+        <span className="id-code">baseUrl</span>
+        <input
+          className="assertion-input"
+          defaultValue="https://staging.shopco.id"
+        />
+      </div>
+      <div className="variable-row">
+        <span className="id-code">orderId</span>
+        <input className="assertion-input" defaultValue="ord_1042" />
+      </div>
+      <button className="secondary-button" style={{ marginTop: 14 }}>
+        <Plus size={14} /> Add variable
+      </button>
+    </div>
+  );
+}
+function ResponsePanel({
+  status,
+  response,
+}: {
+  status: "idle" | "running" | "done";
+  response: string;
+}) {
+  return (
+    <div className="response-panel">
+      <div className="response-head">
+        <div>
+          <span className="eyebrow">RESPONSE</span>
+          <h3>
+            {status === "idle"
+              ? "Run request to inspect response"
+              : status === "running"
+                ? "Waiting for response…"
+                : "200 OK"}
+          </h3>
+        </div>
+        <div className="response-meta">
+          {status === "done" && (
+            <>
+              <span className="status-chip status-lime">PASS</span>
+              <span>
+                <Clock3 size={12} />
+                184 ms
+              </span>
+              <span>1.2 KB</span>
+            </>
+          )}
+          {status === "done" && (
+            <button
+              className="icon-button"
+              aria-label="Copy response"
+              onClick={() => {
+                void navigator.clipboard?.writeText(response);
+                toast("Response copied");
+              }}
+            >
+              <Copy size={14} />
+            </button>
+          )}
+        </div>
+      </div>
+      {status === "idle" ? (
+        <div className="response-empty">
+          <FileJson size={24} />
+          <p>
+            Response body, headers, dan assertion result akan tampil di sini.
+          </p>
+        </div>
+      ) : (
+        <pre className="response-code">
+          {status === "running" ? "Sending request…" : response}
+        </pre>
+      )}
+    </div>
+  );
+}
+
+function DbWorkspace({
+  activeTab,
+  setActiveTab,
+  sql,
+  setSql,
+  ran,
+  setRan,
+}: {
+  activeTab: string;
+  setActiveTab: (value: string) => void;
+  sql: string;
+  setSql: (value: string) => void;
+  ran: boolean;
+  setRan: (value: boolean) => void;
+}) {
+  return (
+    <div className="lab-layout">
+      <div className="lab-main panel">
+        <div className="lab-panel-header">
+          <div>
+            <span className="eyebrow">READ-ONLY QUERY CONSOLE</span>
+            <h2>Orders validation</h2>
+          </div>
+          <div className="lab-header-actions">
+            <span className="status-chip status-lime">
+              <i />
+              READ ONLY
+            </span>
+            <button className="icon-button" aria-label="More query actions">
+              <Code2 size={16} />
+            </button>
+          </div>
+        </div>
+        <LabTabs
+          tabs={["Query", "Assertions", "Schema"]}
+          active={activeTab}
+          onChange={setActiveTab}
+        />
+        {activeTab === "Query" ? (
+          <>
+            <div className="sql-toolbar">
+              <select className="method-select">
+                <option>PostgreSQL</option>
+                <option>MySQL</option>
+                <option>MongoDB</option>
+              </select>
+              <span className="tag">qa_readonly@staging</span>
+              <span className="toolbar-spacer" />
+              <button
+                className="secondary-button"
+                onClick={() =>
+                  toast("Query valid", {
+                    description: "SELECT statement aman untuk dieksekusi.",
+                  })
+                }
+              >
+                <ShieldCheck size={14} /> Validate
+              </button>
+              <button
+                className="primary-button"
+                onClick={() => {
+                  setRan(true);
+                  toast("Query executed", {
+                    description: "4 rows returned in 42 ms.",
+                  });
+                }}
+              >
+                <Play size={14} /> Run query
+              </button>
+            </div>
+            <textarea
+              className="sql-editor"
+              value={sql}
+              onChange={e => setSql(e.target.value)}
+              spellCheck={false}
+            />
+            {ran ? (
+              <DbResult />
+            ) : (
+              <div className="query-hint">
+                <ShieldCheck size={15} />
+                <span>
+                  SQL guard aktif: hanya SELECT/CTE SELECT, parameter binding,
+                  timeout, dan row limit.
+                </span>
+              </div>
+            )}
+          </>
+        ) : activeTab === "Assertions" ? (
+          <DbAssertions />
+        ) : (
+          <SchemaPanel />
+        )}
+      </div>
+      <aside className="lab-side">
+        <SectionHeading
+          title="Saved queries"
+          detail="4 scenarios in Data integrity"
+          action={
+            <button className="icon-button">
+              <Plus size={15} />
+            </button>
+          }
+        />
+        {[
+          "Paid orders have customer email",
+          "No orphan order items",
+          "Unique payment reference",
+          "Order totals match items",
+        ].map((name, index) => (
+          <button
+            className={`saved-item ${index === 0 ? "selected" : ""}`}
+            key={name}
+          >
+            <span className="method-pill sql">
+              <Database size={13} />
+            </span>
+            <span>
+              <strong>{name}</strong>
+              <small>
+                {index === 0 ? "orders · 50 rows" : "integrity check · saved"}
+              </small>
+            </span>
+            <span className="tag">SQL</span>
+          </button>
+        ))}
+        <div className="safe-note">
+          <ShieldCheck size={16} />
+          <div>
+            <strong>Production protected</strong>
+            <p>
+              Write query dan destructive statement diblokir di environment
+              production.
+            </p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  );
+}
+function DbResult() {
+  return (
+    <div className="db-result">
+      <div className="result-toolbar">
+        <span>
+          <strong>4 rows</strong> · 42 ms
+        </span>
+        <span className="status-chip status-lime">QUERY PASSED</span>
+        <button className="icon-button">
+          <Copy size={14} />
+        </button>
+      </div>
+      <div className="result-table-wrap">
+        <table className="result-table">
+          <thead>
+            <tr>
+              <th>id</th>
+              <th>email</th>
+              <th>status</th>
+              <th>total</th>
+              <th>created_at</th>
+            </tr>
+          </thead>
+          <tbody>
+            {dbRows.map(row => (
+              <tr key={row.id}>
+                <td>{row.id}</td>
+                <td>{row.email}</td>
+                <td>
+                  <span
+                    className={`tag ${row.status === "paid" ? "" : "medium"}`}
+                  >
+                    {row.status}
+                  </span>
+                </td>
+                <td>{row.total}</td>
+                <td>{row.created}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+function DbAssertions() {
+  return (
+    <div className="assertions-panel">
+      <div className="assertion-row">
+        <Check size={15} />
+        <span>Row count equals</span>
+        <input className="small-input" defaultValue="4" />
+        <button className="icon-button">
+          <Trash2 size={14} />
+        </button>
+      </div>
+      <div className="assertion-row">
+        <Check size={15} />
+        <span>Column</span>
+        <select className="filter-select">
+          <option>status</option>
+          <option>total</option>
+          <option>email</option>
+        </select>
+        <span>contains</span>
+        <input className="assertion-input" defaultValue="paid" />
+        <button className="icon-button">
+          <Trash2 size={14} />
+        </button>
+      </div>
+      <button className="secondary-button" style={{ marginTop: 14 }}>
+        <Plus size={14} /> Add assertion
+      </button>
+    </div>
+  );
+}
+function SchemaPanel() {
+  return (
+    <div className="schema-panel">
+      <div className="schema-table">
+        <div className="schema-title">
+          <Table2 size={15} /> public.orders
+        </div>
+        {[
+          "id uuid PRIMARY KEY",
+          "email varchar(255)",
+          "status order_status",
+          "total integer",
+          "created_at timestamptz",
+        ].map(field => (
+          <div className="schema-field" key={field}>
+            <Code2 size={12} />
+            <span>{field}</span>
+          </div>
+        ))}
+      </div>
+      <div className="schema-table">
+        <div className="schema-title">
+          <Table2 size={15} /> public.order_items
+        </div>
+        {[
+          "id uuid PRIMARY KEY",
+          "order_id uuid FK",
+          "sku varchar(64)",
+          "quantity integer",
+          "unit_price integer",
+        ].map(field => (
+          <div className="schema-field" key={field}>
+            <Code2 size={12} />
+            <span>{field}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
