@@ -37,6 +37,8 @@ Website ini dibangun berdasarkan spesifikasi `web-qa.md` dan saat ini berfokus p
 
 ## Menjalankan secara lokal
 
+Panduan lengkap untuk menambah fitur, deployment ke Vercel/Netlify, ringkasan implementasi, dan setup lokal tersedia di [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+
 ### Prasyarat
 
 - Node.js 22+
